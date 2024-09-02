@@ -9,6 +9,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/handler/update_counter"
 	"github.com/bjlag/go-metrics/internal/handler/update_gauge"
 	"github.com/bjlag/go-metrics/internal/helper"
+	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 const (
@@ -22,10 +23,14 @@ func main() {
 }
 
 func run() error {
+	memStorage := memory.NewMemStorage()
+	gauge := update_gauge.NewHandler(memStorage)
+	counter := update_counter.NewHandler(memStorage)
+
 	mux := http.NewServeMux()
+	mux.Handle("/update/gauge/", helper.MakeUpdateHandler(gauge.Handle))
+	mux.Handle("/update/counter/", helper.MakeUpdateHandler(counter.Handle))
 	mux.HandleFunc("/update/", update_common.Handle)
-	mux.Handle("/update/gauge/", helper.MakeUpdateHandler(update_gauge.Handle))
-	mux.Handle("/update/counter/", helper.MakeUpdateHandler(update_counter.Handle))
 
 	log.Printf("Listening on %s", port)
 
