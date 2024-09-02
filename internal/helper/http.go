@@ -39,5 +39,7 @@ func MakeUpdateHandler(handler UpdateHandler) http.HandlerFunc {
 		log.Printf("Metric received: type '%s', name '%s', value '%s'\n", m[1], m[2], m[3])
 
 		handler(w, r, m[2], m[3])
+
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	}
 }
