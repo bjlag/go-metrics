@@ -5,10 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/bjlag/go-metrics/internal/handler/update_common"
+	"github.com/bjlag/go-metrics/internal/handler/update"
 	"github.com/bjlag/go-metrics/internal/handler/update_counter"
 	"github.com/bjlag/go-metrics/internal/handler/update_gauge"
-	"github.com/bjlag/go-metrics/internal/helper"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
@@ -24,13 +23,14 @@ func main() {
 
 func run() error {
 	memStorage := memory.NewMemStorage()
-	gauge := update_gauge.NewHandler(memStorage)
-	counter := update_counter.NewHandler(memStorage)
+	gaugeHandler := update_gauge.NewHandler(memStorage)
+	counterHandler := update_counter.NewHandler(memStorage)
+	updateHandler := update.NewHandler()
 
 	mux := http.NewServeMux()
-	mux.Handle("/update/gauge/", helper.MakeUpdateHandler(gauge.Handle))
-	mux.Handle("/update/counter/", helper.MakeUpdateHandler(counter.Handle))
-	mux.HandleFunc("/update/", update_common.Handle)
+	mux.Handle("/update/gauge/{name}/{value}", http.HandlerFunc(gaugeHandler.Handle))
+	mux.Handle("/update/counter/{name}/{value}", http.HandlerFunc(counterHandler.Handle))
+	mux.Handle("/update/", http.HandlerFunc(updateHandler.Handle))
 
 	log.Printf("Listening on %s", port)
 
