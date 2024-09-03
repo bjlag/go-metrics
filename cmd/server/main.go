@@ -31,7 +31,7 @@ func run() error {
 	mux := http.NewServeMux()
 	mux.Handle("/update/gauge/{name}/{value}", middleware.Default(http.HandlerFunc(gaugeHandler.Handle)))
 	mux.Handle("/update/counter/{name}/{value}", middleware.Default(http.HandlerFunc(counterHandler.Handle)))
-	mux.Handle("/update/", http.HandlerFunc(updateHandler.Handle))
+	mux.Handle("/update/{type}/", http.HandlerFunc(updateHandler.Handle))
 
 	log.Printf("Listening on %s", port)
 
