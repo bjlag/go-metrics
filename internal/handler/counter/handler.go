@@ -1,4 +1,4 @@
-package update_counter
+package counter
 
 import (
 	"net/http"

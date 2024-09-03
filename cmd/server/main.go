@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/bjlag/go-metrics/internal/handler/counter"
+	"github.com/bjlag/go-metrics/internal/handler/gauge"
 	"github.com/bjlag/go-metrics/internal/handler/update"
-	"github.com/bjlag/go-metrics/internal/handler/update_counter"
-	"github.com/bjlag/go-metrics/internal/handler/update_gauge"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
@@ -24,8 +24,8 @@ func main() {
 
 func run() error {
 	memStorage := memory.NewMemStorage()
-	gaugeHandler := update_gauge.NewHandler(memStorage)
-	counterHandler := update_counter.NewHandler(memStorage)
+	gaugeHandler := gauge.NewHandler(memStorage)
+	counterHandler := counter.NewHandler(memStorage)
 	updateHandler := update.NewHandler()
 
 	mux := http.NewServeMux()
