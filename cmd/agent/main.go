@@ -30,26 +30,29 @@ func main() {
 	client := &http.Client{}
 	client.Timeout = timeout
 
+	pollIntervalTicker := time.NewTicker(pollInterval)
+	defer pollIntervalTicker.Stop()
+
 	go func() {
-		for {
+		for ; ; <-pollIntervalTicker.C {
 			runtime.ReadMemStats(rtm)
 
 			response, err := sendMetric(client, NewMetric(counterMetric, "PollCount", 1))
 			if err != nil {
 				log.Println(err)
-				time.Sleep(pollInterval)
 				continue
 			}
 
 			log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
-
-			time.Sleep(pollInterval)
 		}
 	}()
 
+	reportIntervalTicker := time.NewTicker(reportInterval)
+	defer reportIntervalTicker.Stop()
+
 	wg := &sync.WaitGroup{}
 
-	for {
+	for ; ; <-reportIntervalTicker.C {
 		for _, metric := range collectMetrics(rtm) {
 			wg.Add(1)
 			go func() {
@@ -70,8 +73,6 @@ func main() {
 		}
 
 		wg.Wait()
-
-		time.Sleep(reportInterval)
 	}
 }
 
