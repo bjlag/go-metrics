@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -13,69 +15,128 @@ const (
 	reportInterval = 10 * time.Second
 
 	timeout = 100 * time.Millisecond
+
+	urlFormat = "http://127.0.0.1:8080/update/%s/%s/%v"
+
+	gaugeMetric   = "gauge"
+	counterMetric = "counter"
 )
 
 func main() {
-	rmt := &runtime.MemStats{}
+	log.Println("Starting agent")
 
-	go func() {
-		for {
-			runtime.ReadMemStats(rmt)
-			time.Sleep(pollInterval)
-		}
-	}()
+	rtm := &runtime.MemStats{}
 
 	client := &http.Client{}
 	client.Timeout = timeout
 
-	log.Println("Starting agent")
+	go func() {
+		for {
+			runtime.ReadMemStats(rtm)
+
+			response, err := sendMetric(client, NewMetric(counterMetric, "PollCount", 1))
+			if err != nil {
+				log.Println(err)
+				time.Sleep(pollInterval)
+				continue
+			}
+
+			log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
+
+			time.Sleep(pollInterval)
+		}
+	}()
+
+	wg := &sync.WaitGroup{}
 
 	for {
+		for _, metric := range collectMetrics(rtm) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				response, err := sendMetric(client, metric)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				defer func() {
+					_ = response.Body.Close()
+				}()
+
+				log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
+			}()
+		}
+
+		wg.Wait()
+
 		time.Sleep(reportInterval)
+	}
+}
 
-		url := fmt.Sprintf("http://127.0.0.1:8080/update/%s/%s/%d", "gauge", "Alloc", rmt.Alloc)
-		request, err := http.NewRequest(http.MethodPost, url, nil)
-		if err != nil {
-			log.Printf("Error while creating request to '%s', error %v", url, err)
-			continue
-		}
+type Metric struct {
+	kind  string
+	name  string
+	value interface{}
+}
 
-		response, err := client.Do(request)
-		if err != nil {
-			log.Printf("Error while sending request to '%s', error %v", url, err)
-			continue
-		}
+func NewMetric(kind string, name string, value interface{}) *Metric {
+	return &Metric{
+		kind:  kind,
+		name:  name,
+		value: value,
+	}
+}
 
-		log.Printf("Sent request to %s, status %d", url, response.StatusCode)
+func sendMetric(client *http.Client, metric *Metric) (*http.Response, error) {
+	url := fmt.Sprintf(urlFormat, metric.kind, metric.name, metric.value)
+	request, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request to '%s', error %v", url, err)
 	}
 
-	//runtime.ReadMemStats(rmt)
-	//
-	//fmt.Println(rmt.Alloc)
-	//fmt.Println(rmt.TotalAlloc)
-	//fmt.Println(rmt.BuckHashSys)
-	//fmt.Println(rmt.Frees)
-	//fmt.Println(rmt.GCCPUFraction)
-	//fmt.Println(rmt.GCSys)
-	//fmt.Println(rmt.HeapAlloc)
-	//fmt.Println(rmt.HeapIdle)
-	//fmt.Println(rmt.HeapInuse)
-	//fmt.Println(rmt.HeapObjects)
-	//fmt.Println(rmt.HeapReleased)
-	//fmt.Println(rmt.HeapSys)
-	//fmt.Println(rmt.LastGC)
-	//fmt.Println(rmt.Lookups)
-	//fmt.Println(rmt.MCacheInuse)
-	//fmt.Println(rmt.MCacheSys)
-	//fmt.Println(rmt.MSpanInuse)
-	//fmt.Println(rmt.MSpanSys)
-	//fmt.Println(rmt.Mallocs)
-	//fmt.Println(rmt.NextGC)
-	//fmt.Println(rmt.NumForcedGC)
-	//fmt.Println(rmt.NumGC)
-	//fmt.Println(rmt.OtherSys)
-	//fmt.Println(rmt.PauseTotalNs)
-	//fmt.Println(rmt.StackInuse)
-	//fmt.Println(rmt.StackSys)
-	//fmt.Println(rmt.Sys)
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request to '%s', error %v", url, err)
+	}
+
+	return response, nil
+}
+
+func collectMetrics(rtm *runtime.MemStats) []*Metric {
+	return []*Metric{
+		NewMetric(gaugeMetric, "Alloc", rtm.Alloc),
+		NewMetric(gaugeMetric, "TotalAlloc", rtm.TotalAlloc),
+		NewMetric(gaugeMetric, "BuckHashSys", rtm.BuckHashSys),
+		NewMetric(gaugeMetric, "Frees", rtm.Frees),
+		NewMetric(gaugeMetric, "GCCPUFraction", rtm.GCCPUFraction),
+		NewMetric(gaugeMetric, "GCSys", rtm.GCSys),
+		NewMetric(gaugeMetric, "HeapAlloc", rtm.HeapAlloc),
+		NewMetric(gaugeMetric, "HeapIdle", rtm.HeapIdle),
+		NewMetric(gaugeMetric, "HeapInuse", rtm.HeapInuse),
+		NewMetric(gaugeMetric, "HeapObjects", rtm.HeapObjects),
+		NewMetric(gaugeMetric, "HeapReleased", rtm.HeapReleased),
+		NewMetric(gaugeMetric, "HeapSys", rtm.HeapSys),
+		NewMetric(gaugeMetric, "LastGC", rtm.LastGC),
+		NewMetric(gaugeMetric, "Lookups", rtm.Lookups),
+		NewMetric(gaugeMetric, "MCacheInuse", rtm.MCacheInuse),
+		NewMetric(gaugeMetric, "MCacheSys", rtm.MCacheSys),
+		NewMetric(gaugeMetric, "MSpanInuse", rtm.MSpanInuse),
+		NewMetric(gaugeMetric, "MSpanSys", rtm.MSpanSys),
+		NewMetric(gaugeMetric, "Mallocs", rtm.Mallocs),
+		NewMetric(gaugeMetric, "NextGC", rtm.NextGC),
+		NewMetric(gaugeMetric, "NumForcedGC", rtm.NumForcedGC),
+		NewMetric(gaugeMetric, "NumGC", rtm.NumGC),
+		NewMetric(gaugeMetric, "OtherSys", rtm.OtherSys),
+		NewMetric(gaugeMetric, "PauseTotalNs", rtm.PauseTotalNs),
+		NewMetric(gaugeMetric, "StackInuse", rtm.StackInuse),
+		NewMetric(gaugeMetric, "StackSys", rtm.StackSys),
+		NewMetric(gaugeMetric, "Sys", rtm.Sys),
+		NewMetric(gaugeMetric, "RandomValue", getRandomFloat(1, 100)),
+	}
+}
+
+func getRandomFloat(min, max float64) float64 {
+	return min + rand.Float64()*(max-min)
 }
