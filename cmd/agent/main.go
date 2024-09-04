@@ -97,6 +97,8 @@ func sendMetric(client *http.Client, metric *Metric) (*http.Response, error) {
 		return nil, fmt.Errorf("error creating request to '%s', error %v", url, err)
 	}
 
+	request.Header.Set("Content-Type", "text/plain")
+
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to '%s', error %v", url, err)
