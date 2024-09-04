@@ -13,10 +13,10 @@ const (
 )
 
 type Handler struct {
-	storage storage.Interface
+	storage storage.Repository
 }
 
-func NewHandler(storage storage.Interface) *Handler {
+func NewHandler(storage storage.Repository) *Handler {
 	return &Handler{
 		storage: storage,
 	}
