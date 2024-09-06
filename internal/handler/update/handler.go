@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	invalidMetricTypeMsgErr = "Invalid metric type"
+	invalidMetricKindMsgErr = "Invalid metric type"
 )
 
 type Handler struct{}
@@ -15,10 +15,10 @@ func NewHandler() *Handler {
 }
 
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
-	typeMetric := r.PathValue("type")
-	if typeMetric == "counter" || typeMetric == "gauge" {
+	kind := r.PathValue("kind")
+	if kind == "counter" || kind == "gauge" {
 		http.NotFound(w, r)
 		return
 	}
-	http.Error(w, invalidMetricTypeMsgErr, http.StatusBadRequest)
+	http.Error(w, invalidMetricKindMsgErr, http.StatusBadRequest)
 }

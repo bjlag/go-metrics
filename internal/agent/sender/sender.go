@@ -12,10 +12,10 @@ const (
 )
 
 type MetricSender struct {
-	client *http.Client
+	client Client
 }
 
-func NewHttpSender(client *http.Client) *MetricSender {
+func NewHTTPSender(client Client) *MetricSender {
 	return &MetricSender{
 		client: client,
 	}

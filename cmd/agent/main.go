@@ -31,7 +31,7 @@ func run() error {
 
 	client := &http.Client{}
 	client.Timeout = timeout
-	metricSender := sender.NewHttpSender(client)
+	metricSender := sender.NewHTTPSender(client)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()
@@ -45,6 +45,8 @@ func run() error {
 				log.Println(err)
 				continue
 			}
+
+			_ = response.Body.Close()
 
 			log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
 		}

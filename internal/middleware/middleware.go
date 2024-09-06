@@ -11,7 +11,7 @@ func Default(next http.Handler) http.Handler {
 	return Conveyor(
 		next,
 		FinishRequestMiddleware,
-		AllowMethodMiddleware,
+		AllowPostMethodMiddleware,
 		LogRequestMiddleware,
 	)
 }
@@ -31,7 +31,7 @@ func LogRequestMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func AllowMethodMiddleware(next http.Handler) http.Handler {
+func AllowPostMethodMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.Header().Set("Allow", http.MethodPost)

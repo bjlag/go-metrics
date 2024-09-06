@@ -3,8 +3,6 @@ package gauge
 import (
 	"net/http"
 	"strconv"
-
-	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 const (
@@ -13,10 +11,10 @@ const (
 )
 
 type Handler struct {
-	storage storage.Repository
+	storage Storage
 }
 
-func NewHandler(storage storage.Repository) *Handler {
+func NewHandler(storage Storage) *Handler {
 	return &Handler{
 		storage: storage,
 	}
