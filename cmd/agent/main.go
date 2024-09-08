@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	baseUrl = "http://127.0.0.1:8080"
+	baseURL = "http://127.0.0.1:8080"
 
 	pollInterval   = 2 * time.Second
 	reportInterval = 10 * time.Second
@@ -27,7 +27,7 @@ func run() error {
 	log.Println("Starting agent")
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(baseUrl)
+	metricClient := client.NewHTTPSender(baseURL)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()

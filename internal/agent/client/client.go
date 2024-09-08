@@ -19,10 +19,10 @@ const (
 
 type MetricSender struct {
 	client  *resty.Client
-	baseUrl string
+	baseURL string
 }
 
-func NewHTTPSender(baseUrl string) *MetricSender {
+func NewHTTPSender(baseURL string) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -30,12 +30,12 @@ func NewHTTPSender(baseUrl string) *MetricSender {
 
 	return &MetricSender{
 		client:  client,
-		baseUrl: baseUrl,
+		baseURL: baseURL,
 	}
 }
 
 func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
-	url := fmt.Sprintf(urlTemplate, s.baseUrl, metric.Kind(), metric.Name(), metric.Value())
+	url := fmt.Sprintf(urlTemplate, s.baseURL, metric.Kind(), metric.Name(), metric.Value())
 	request := s.client.R().SetHeader("Content-Type", "text/plain")
 
 	response, err := request.Post(url)
