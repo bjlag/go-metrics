@@ -2,20 +2,19 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"runtime"
 	"sync"
 	"time"
 
+	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
-	"github.com/bjlag/go-metrics/internal/agent/sender"
 )
 
 const (
+	baseUrl = "http://127.0.0.1:8080"
+
 	pollInterval   = 2 * time.Second
 	reportInterval = 10 * time.Second
-
-	timeout = 100 * time.Millisecond
 )
 
 func main() {
@@ -28,10 +27,7 @@ func run() error {
 	log.Println("Starting agent")
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-
-	client := &http.Client{}
-	client.Timeout = timeout
-	metricSender := sender.NewHTTPSender(client)
+	metricClient := client.NewHTTPSender(baseUrl)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()
@@ -40,15 +36,13 @@ func run() error {
 		for ; ; <-pollTicker.C {
 			metricCollector.ReadStats()
 
-			response, err := metricSender.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
+			response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
 			if err != nil {
 				log.Println(err)
 				continue
 			}
 
-			_ = response.Body.Close()
-
-			log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
+			log.Printf("Sent request to %s, status %d", response.Request.URL, response.StatusCode())
 		}
 	}()
 
@@ -63,17 +57,13 @@ func run() error {
 			go func() {
 				defer wg.Done()
 
-				response, err := metricSender.Send(metric)
+				response, err := metricClient.Send(metric)
 				if err != nil {
 					log.Println(err)
 					return
 				}
 
-				defer func() {
-					_ = response.Body.Close()
-				}()
-
-				log.Printf("Sent request to %s, status %d", response.Request.URL.Path, response.StatusCode)
+				log.Printf("Sent request to %s, status %d", response.Request.URL, response.StatusCode())
 			}()
 		}
 
