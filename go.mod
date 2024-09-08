@@ -3,6 +3,7 @@ module github.com/bjlag/go-metrics
 go 1.22.2
 
 require (
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-resty/resty/v2 v2.14.0
 	github.com/golang/mock v1.6.0
 	github.com/stretchr/testify v1.9.0

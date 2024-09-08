@@ -7,15 +7,6 @@ import (
 
 type Middleware func(http.Handler) http.Handler
 
-func Default(next http.Handler) http.Handler {
-	return Conveyor(
-		next,
-		FinishRequestMiddleware,
-		AllowPostMethodMiddleware,
-		LogRequestMiddleware,
-	)
-}
-
 func Conveyor(next http.Handler, middlewares ...Middleware) http.Handler {
 	for _, middleware := range middlewares {
 		next = middleware(next)

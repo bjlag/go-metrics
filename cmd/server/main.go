@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/bjlag/go-metrics/internal/handler/counter"
 	"github.com/bjlag/go-metrics/internal/handler/gauge"
 	"github.com/bjlag/go-metrics/internal/handler/update"
@@ -24,21 +26,20 @@ func main() {
 
 func run() error {
 	memStorage := memory.NewMemStorage()
-	gaugeHandler := gauge.NewHandler(memStorage)
-	counterHandler := counter.NewHandler(memStorage)
-	updateHandler := update.NewHandler()
 
-	mux := http.NewServeMux()
-	mux.Handle("/update/gauge/{name}/{value}", middleware.Default(http.HandlerFunc(gaugeHandler.Handle)))
-	mux.Handle("/update/counter/{name}/{value}", middleware.Default(http.HandlerFunc(counterHandler.Handle)))
-	mux.Handle("/update/{kind}/", http.HandlerFunc(updateHandler.Handle))
+	router := chi.NewRouter()
+
+	router.Use(
+		middleware.LogRequestMiddleware,
+		middleware.AllowPostMethodMiddleware,
+		middleware.FinishRequestMiddleware,
+	)
+
+	router.Post("/update/gauge/{name}/{value}", gauge.NewHandler(memStorage).Handle)
+	router.Post("/update/counter/{name}/{value}", counter.NewHandler(memStorage).Handle)
+	router.Post("/update/{kind}", update.NewHandler().Handle)
 
 	log.Printf("Listening on %s", port)
 
-	err := http.ListenAndServe(fmt.Sprintf(":%s", port), mux)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return http.ListenAndServe(fmt.Sprintf(":%s", port), router)
 }
