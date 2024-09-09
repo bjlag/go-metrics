@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/bjlag/go-metrics/internal/handler/list"
 	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
 	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
 	updateUnknown "github.com/bjlag/go-metrics/internal/handler/update/unknown"
@@ -15,6 +16,7 @@ import (
 	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	storage "github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
 const (
@@ -29,6 +31,7 @@ func main() {
 
 func run() error {
 	memStorage := storage.NewMemStorage()
+	htmlRenderer := renderer.NewHTMLRenderer("web/tmpl/list.html")
 
 	router := chi.NewRouter()
 
@@ -36,6 +39,8 @@ func run() error {
 		middleware.LogRequestMiddleware,
 		middleware.FinishRequestMiddleware,
 	)
+
+	router.Get("/", list.NewHandler(htmlRenderer, memStorage).Handle)
 
 	router.Post("/update/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
 	router.Post("/update/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
