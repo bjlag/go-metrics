@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -19,10 +18,6 @@ import (
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
-const (
-	port = "8080"
-)
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatalln(err)
@@ -30,6 +25,8 @@ func main() {
 }
 
 func run() error {
+	parseFlags()
+
 	memStorage := storage.NewMemStorage()
 	htmlRenderer := renderer.NewHTMLRenderer("web/tmpl/list.html")
 
@@ -50,7 +47,7 @@ func run() error {
 	router.Get("/value/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
 	router.Get("/value/{kind}/{name}", valueUnknown.NewHandler().Handle)
 
-	log.Printf("Listening on %s", port)
+	log.Printf("Listening on %s\n", addr.String())
 
-	return http.ListenAndServe(fmt.Sprintf(":%s", port), router)
+	return http.ListenAndServe(addr.String(), router)
 }
