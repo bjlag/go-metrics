@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -17,17 +19,12 @@ func (o *netAddress) String() string {
 }
 
 func (o *netAddress) Set(value string) error {
-	values := strings.Split(value, ":")
-	if len(values) != 2 {
-		return fmt.Errorf("invalid format")
-	}
-
-	port, err := strconv.Atoi(values[1])
+	host, port, err := parseHostAndPort(value)
 	if err != nil {
 		return err
 	}
 
-	o.host = values[0]
+	o.host = host
 	o.port = port
 
 	return nil
@@ -36,6 +33,8 @@ func (o *netAddress) Set(value string) error {
 const (
 	defaultHost = "localhost"
 	defaultPort = 8080
+
+	envAddress = "ADDRESS"
 )
 
 var addr = &netAddress{
@@ -48,4 +47,30 @@ func parseFlags() {
 
 	flag.Var(addr, "a", "Server address: host:port")
 	flag.Parse()
+}
+
+func parseEnvs() {
+	if address := os.Getenv(envAddress); address != "" {
+		host, port, err := parseHostAndPort(address)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		addr.host = host
+		addr.port = port
+	}
+}
+
+func parseHostAndPort(s string) (string, int, error) {
+	values := strings.Split(s, ":")
+	if len(values) != 2 {
+		return "", 0, fmt.Errorf("invalid format")
+	}
+
+	port, err := strconv.Atoi(values[1])
+	if err != nil {
+		return "", 0, err
+	}
+
+	return values[0], port, nil
 }

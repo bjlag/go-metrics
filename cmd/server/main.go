@@ -26,6 +26,7 @@ func main() {
 
 func run() error {
 	parseFlags()
+	parseEnvs()
 
 	memStorage := storage.NewMemStorage()
 	htmlRenderer := renderer.NewHTMLRenderer("web/tmpl/list.html")
