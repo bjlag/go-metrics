@@ -1,5 +1,9 @@
 package memory
 
+import (
+	"fmt"
+)
+
 const (
 	initSize = 10
 )
@@ -22,16 +26,26 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (s *MemStorage) GetGauge(name string) float64 {
-	return s.Gauge[name]
+func (s *MemStorage) GetGauge(name string) (float64, error) {
+	value, ok := s.Gauge[name]
+	if !ok {
+		return 0, fmt.Errorf("gauge metric '%s' not found", name)
+	}
+
+	return value, nil
 }
 
 func (s *MemStorage) SetGauge(name string, value float64) {
 	s.Gauge[name] = value
 }
 
-func (s *MemStorage) GetCounter(name string) int64 {
-	return s.Counter[name]
+func (s *MemStorage) GetCounter(name string) (int64, error) {
+	value, ok := s.Counter[name]
+	if !ok {
+		return 0, fmt.Errorf("counter metric '%s' not found", name)
+	}
+
+	return value, nil
 }
 
 func (s *MemStorage) AddCounter(name string, value int64) {

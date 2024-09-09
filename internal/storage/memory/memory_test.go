@@ -10,84 +10,97 @@ import (
 
 func TestMemStorage_Counter(t *testing.T) {
 	type args struct {
-		name   string
-		values []int64
+		name string
 	}
 
 	tests := []struct {
-		name string
-		args args
-		want int64
+		name    string
+		args    args
+		want    int64
+		wantErr bool
 	}{
 		{
 			name: "success",
 			args: args{
-				name:   "test",
-				values: []int64{1, 2, 3, 4, 5},
+				name: "name",
 			},
-			want: 15,
+			want:    15,
+			wantErr: false,
 		},
 		{
-			name: "empty",
+			name: "not found",
 			args: args{
-				name:   "test",
-				values: []int64{},
+				name: "unknown",
 			},
-			want: 0,
+			want:    0,
+			wantErr: true,
 		},
+	}
+
+	s := memory.NewMemStorage()
+	for _, value := range []int64{1, 2, 3, 4, 5} {
+		s.AddCounter("name", value)
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := memory.NewMemStorage()
-
-			for _, value := range tt.args.values {
-				s.AddCounter(tt.args.name, value)
+			curValue, err := s.GetCounter(tt.args.name)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
 			}
 
-			assert.Equal(t, tt.want, s.GetCounter(tt.args.name))
+			assert.Equal(t, tt.want, curValue)
+			assert.Nil(t, err)
 		})
 	}
 }
 
-func TestMemStorage_Gauge(t *testing.T) {
+func TestMemStorage_SetGauge(t *testing.T) {
 	type args struct {
-		name   string
-		values []float64
+		name string
 	}
 
 	tests := []struct {
-		name string
-		args args
-		want float64
+		name    string
+		args    args
+		want    float64
+		wantErr bool
 	}{
 		{
 			name: "success",
 			args: args{
-				name:   "test",
-				values: []float64{1, 2.2, 3.3, 0, 5},
+				name: "name",
 			},
-			want: 5,
+			want:    5,
+			wantErr: false,
 		},
 		{
-			name: "empty",
+			name: "not found",
 			args: args{
-				name:   "test",
-				values: []float64{},
+				name: "unknown",
 			},
-			want: 0,
+			want:    0,
+			wantErr: true,
 		},
+	}
+
+	s := memory.NewMemStorage()
+
+	for _, value := range []float64{1, 2.2, 3.3, 0, 5} {
+		s.SetGauge("name", value)
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := memory.NewMemStorage()
-
-			for _, value := range tt.args.values {
-				s.SetGauge(tt.args.name, value)
+			curValue, err := s.GetGauge(tt.args.name)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
 			}
 
-			assert.Equal(t, tt.want, s.GetGauge(tt.args.name))
+			assert.Equal(t, tt.want, curValue)
+			assert.Nil(t, err)
 		})
 	}
 }
