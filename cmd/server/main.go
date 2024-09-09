@@ -37,7 +37,7 @@ func run() error {
 
 	router.Post("/update/gauge/{name}/{value}", gauge.NewHandler(memStorage).Handle)
 	router.Post("/update/counter/{name}/{value}", counter.NewHandler(memStorage).Handle)
-	router.Post("/update/{kind}", update.NewHandler().Handle)
+	router.Post("/update/{kind}/{name}/{value}", update.NewHandler().Handle)
 
 	log.Printf("Listening on %s", port)
 

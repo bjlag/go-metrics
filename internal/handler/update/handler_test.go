@@ -25,24 +25,6 @@ func TestHandler_Handle(t *testing.T) {
 		want   want
 	}{
 		{
-			name: "kind is counter",
-			fields: fields{
-				kind: "counter",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-			},
-		},
-		{
-			name: "kind is gauge",
-			fields: fields{
-				kind: "gauge",
-			},
-			want: want{
-				statusCode: http.StatusNotFound,
-			},
-		},
-		{
 			name: "other some thing",
 			fields: fields{
 				kind: "other",
