@@ -3,16 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-)
-
-const (
-	defaultHost           = "localhost"
-	defaultPort           = 8080
-	defaultPoolInterval   = 2
-	defaultReportInterval = 10
 )
 
 type netAddress struct {
@@ -25,21 +20,27 @@ func (o *netAddress) String() string {
 }
 
 func (o *netAddress) Set(value string) error {
-	values := strings.Split(value, ":")
-	if len(values) != 2 {
-		return fmt.Errorf("invalid format")
-	}
-
-	port, err := strconv.Atoi(values[1])
+	host, port, err := parseHostAndPort(value)
 	if err != nil {
 		return err
 	}
 
-	o.host = values[0]
+	o.host = host
 	o.port = port
 
 	return nil
 }
+
+const (
+	defaultHost           = "localhost"
+	defaultPort           = 8080
+	defaultPoolInterval   = 2
+	defaultReportInterval = 10
+
+	envAddressKey        = "ADDRESS"
+	envPollIntervalKey   = "POLL_INTERVAL"
+	envReportIntervalKey = "REPORT_INTERVAL"
+)
 
 var (
 	addr = &netAddress{
@@ -78,6 +79,38 @@ func parseFlags() {
 	flag.Parse()
 }
 
+func parseEnvs() {
+	var (
+		host string
+		port int
+		err  error
+	)
+
+	if address := os.Getenv(envAddressKey); address != "" {
+		host, port, err = parseHostAndPort(address)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		addr.host = host
+		addr.port = port
+	}
+
+	if envPollInterval := os.Getenv(envPollIntervalKey); envPollInterval != "" {
+		pollInterval, err = stringToDurationInSeconds(envPollInterval)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if envReportInterval := os.Getenv(envReportIntervalKey); envReportInterval != "" {
+		reportInterval, err = stringToDurationInSeconds(envReportInterval)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 func stringToDurationInSeconds(s string) (time.Duration, error) {
 	val, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
@@ -85,4 +118,18 @@ func stringToDurationInSeconds(s string) (time.Duration, error) {
 	}
 
 	return time.Duration(val) * time.Second, nil
+}
+
+func parseHostAndPort(s string) (string, int, error) {
+	values := strings.Split(s, ":")
+	if len(values) != 2 {
+		return "", 0, fmt.Errorf("invalid format")
+	}
+
+	port, err := strconv.Atoi(values[1])
+	if err != nil {
+		return "", 0, err
+	}
+
+	return values[0], port, nil
 }

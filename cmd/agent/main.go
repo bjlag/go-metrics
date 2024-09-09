@@ -18,6 +18,7 @@ func main() {
 
 func run() error {
 	parseFlags()
+	parseEnvs()
 
 	log.Println("Starting agent")
 	log.Printf("Sending metrics to %s\n", addr.String())
