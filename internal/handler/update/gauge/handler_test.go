@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/handler/gauge"
-	"github.com/bjlag/go-metrics/internal/handler/gauge/mock"
+	"github.com/bjlag/go-metrics/internal/handler/update/gauge"
+	"github.com/bjlag/go-metrics/internal/handler/update/gauge/mock"
 )
 
 func TestHandler_Handle(t *testing.T) {

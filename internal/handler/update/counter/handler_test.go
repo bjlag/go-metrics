@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/handler/counter"
-	"github.com/bjlag/go-metrics/internal/handler/counter/mock"
+	"github.com/bjlag/go-metrics/internal/handler/update/counter"
+	"github.com/bjlag/go-metrics/internal/handler/update/counter/mock"
 )
 
 func Test_Handle(t *testing.T) {

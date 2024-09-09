@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/bjlag/go-metrics/internal/handler/counter"
-	"github.com/bjlag/go-metrics/internal/handler/gauge"
-	"github.com/bjlag/go-metrics/internal/handler/update"
+	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
+	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
+	updateUnknown "github.com/bjlag/go-metrics/internal/handler/update/unknown"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
@@ -31,13 +31,12 @@ func run() error {
 
 	router.Use(
 		middleware.LogRequestMiddleware,
-		middleware.AllowPostMethodMiddleware,
 		middleware.FinishRequestMiddleware,
 	)
 
-	router.Post("/update/gauge/{name}/{value}", gauge.NewHandler(memStorage).Handle)
-	router.Post("/update/counter/{name}/{value}", counter.NewHandler(memStorage).Handle)
-	router.Post("/update/{kind}/{name}/{value}", update.NewHandler().Handle)
+	router.Post("/update/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
+	router.Post("/update/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
+	router.Post("/update/{kind}/{name}/{value}", updateUnknown.NewHandler().Handle)
 
 	log.Printf("Listening on %s", port)
 

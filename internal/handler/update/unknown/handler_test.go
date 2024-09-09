@@ -1,4 +1,4 @@
-package update_test
+package unknown_test
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/handler/update"
+	"github.com/bjlag/go-metrics/internal/handler/update/unknown"
 )
 
 func TestHandler_Handle(t *testing.T) {
@@ -42,7 +42,7 @@ func TestHandler_Handle(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			request.SetPathValue("kind", tt.fields.kind)
 
-			h := http.HandlerFunc(update.NewHandler().Handle)
+			h := http.HandlerFunc(unknown.NewHandler().Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()
