@@ -11,8 +11,8 @@ import (
 const (
 	defaultHost           = "localhost"
 	defaultPort           = 8080
-	defaultPoolInterval   = 2 * time.Second
-	defaultReportInterval = 10 * time.Second
+	defaultPoolInterval   = 2
+	defaultReportInterval = 10
 )
 
 type netAddress struct {
@@ -46,15 +46,43 @@ var (
 		host: defaultHost,
 		port: defaultPort,
 	}
-	pollInterval   time.Duration
-	reportInterval time.Duration
+	pollInterval   = defaultPoolInterval * time.Second
+	reportInterval = defaultReportInterval * time.Second
 )
 
 func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
-	flag.DurationVar(&pollInterval, "p", defaultPoolInterval, "Poll interval in seconds")
-	flag.DurationVar(&reportInterval, "r", defaultReportInterval, "Report interval in seconds")
+	flag.Func("p", "Poll interval in seconds", func(s string) error {
+		var err error
+
+		pollInterval, err = stringToDurationInSeconds(s)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	flag.Func("r", "Report interval in seconds", func(s string) error {
+		var err error
+
+		reportInterval, err = stringToDurationInSeconds(s)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	flag.Parse()
+}
+
+func stringToDurationInSeconds(s string) (time.Duration, error) {
+	val, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(val) * time.Second, nil
 }
