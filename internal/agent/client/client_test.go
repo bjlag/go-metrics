@@ -3,6 +3,8 @@ package client_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +38,10 @@ func TestMetricSender_Send(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := client.NewHTTPSender(server.URL)
+			parts := strings.Split(server.Listener.Addr().String(), ":")
+			port, _ := strconv.Atoi(parts[1])
+
+			c := client.NewHTTPSender(parts[0], port)
 
 			got, _ := c.Send(tt.args.metric)
 

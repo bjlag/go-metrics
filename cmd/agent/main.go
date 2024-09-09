@@ -10,13 +10,6 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 )
 
-const (
-	baseURL = "http://127.0.0.1:8080"
-
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-)
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatalln(err)
@@ -24,10 +17,15 @@ func main() {
 }
 
 func run() error {
+	parseFlags()
+
 	log.Println("Starting agent")
+	log.Printf("Sending metrics to %s\n", addr.String())
+	log.Printf("Poll interval %s\n", pollInterval)
+	log.Printf("Report interval %s\n", reportInterval)
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(baseURL)
+	metricClient := client.NewHTTPSender(addr.host, addr.port)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()

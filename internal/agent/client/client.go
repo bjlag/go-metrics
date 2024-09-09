@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	urlTemplate = "%s/update/%s/%s/%v"
+	baseURLTemplate = "http://%s:%d"
+	urlTemplate     = "%s/update/%s/%s/%v"
 
 	timeout       = 100 * time.Millisecond
 	maxRetries    = 2
@@ -22,7 +23,7 @@ type MetricSender struct {
 	baseURL string
 }
 
-func NewHTTPSender(baseURL string) *MetricSender {
+func NewHTTPSender(host string, port int) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -30,7 +31,7 @@ func NewHTTPSender(baseURL string) *MetricSender {
 
 	return &MetricSender{
 		client:  client,
-		baseURL: baseURL,
+		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
 	}
 }
 
