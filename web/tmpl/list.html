@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .Title }}</title>
+</head>
+<body>
+    <h1>{{.Title}}</h1>
+
+    <h2>Counters</h2>
+    {{ range $key, $value := .Counters }}
+        <div>{{ $key }}: {{ $value }}</div>
+    {{ else }} <div>Нет данных</div>
+    {{ end }}
+
+    <h2>Gauges</h2>
+    {{ range $key, $value := .Gauges }}
+        <div>{{ $key }}: {{ $value }}</div>
+    {{ else }} <div>Нет данных</div>
+    {{ end }}
+</body>
+</html>
