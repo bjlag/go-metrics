@@ -32,7 +32,7 @@ func run() error {
 	defer pollTicker.Stop()
 
 	go func() {
-		for ; ; <-pollTicker.C {
+		for range pollTicker.C {
 			metricCollector.ReadStats()
 
 			response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
@@ -50,7 +50,7 @@ func run() error {
 
 	wg := &sync.WaitGroup{}
 
-	for ; ; <-reportTicker.C {
+	for range reportTicker.C {
 		for _, metric := range metricCollector.Collect() {
 			wg.Add(1)
 			go func() {
@@ -68,4 +68,6 @@ func run() error {
 
 		wg.Wait()
 	}
+
+	return nil
 }
