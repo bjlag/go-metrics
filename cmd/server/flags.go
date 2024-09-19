@@ -31,33 +31,44 @@ func (o *netAddress) Set(value string) error {
 }
 
 const (
-	defaultHost = "localhost"
-	defaultPort = 8080
+	defaultHost     = "localhost"
+	defaultPort     = 8080
+	defaultLogLevel = "info"
 
-	envAddress = "ADDRESS"
+	envAddress  = "ADDRESS"
+	envLogLevel = "LOG_LEVEL"
 )
 
-var addr = &netAddress{
-	host: defaultHost,
-	port: defaultPort,
-}
+var (
+	addr = &netAddress{
+		host: defaultHost,
+		port: defaultPort,
+	}
+
+	logLevel string
+)
 
 func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
+	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
 	flag.Parse()
 }
 
 func parseEnvs() {
-	if address := os.Getenv(envAddress); address != "" {
-		host, port, err := parseHostAndPort(address)
+	if envAddressValue := os.Getenv(envAddress); envAddressValue != "" {
+		host, port, err := parseHostAndPort(envAddressValue)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		addr.host = host
 		addr.port = port
+	}
+
+	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
+		logLevel = envLogLevelValue
 	}
 }
 

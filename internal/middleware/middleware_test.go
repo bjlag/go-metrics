@@ -10,7 +10,6 @@ import (
 )
 
 func TestAllowPostMethodMiddleware(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		method         string

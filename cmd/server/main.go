@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
+	nativLog "log"
 	"net/http"
 
+	"github.com/bjlag/go-metrics/internal/logger"
 	storage "github.com/bjlag/go-metrics/internal/storage/memory"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
@@ -14,7 +15,7 @@ const (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalln(err)
+		nativLog.Fatalln(err)
 	}
 }
 
@@ -22,7 +23,17 @@ func run() error {
 	parseFlags()
 	parseEnvs()
 
-	log.Printf("Listening on %s\n", addr.String())
+	log, err := logger.NewZapLogger(logLevel)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = log.Close()
+	}()
+
+	log.Info("Started server", map[string]interface{}{
+		"address": addr.String(),
+	})
 
 	memStorage := storage.NewMemStorage()
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
