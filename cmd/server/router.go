@@ -10,16 +10,17 @@ import (
 	valueCaunter "github.com/bjlag/go-metrics/internal/handler/value/counter"
 	valueGauge "github.com/bjlag/go-metrics/internal/handler/value/gauge"
 	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
+	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, memStorage storage.Repository) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, memStorage storage.Repository, logger logger.Logger) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(
-		middleware.LogRequestMiddleware,
+		middleware.CreateLogRequestMiddleware(logger),
 		middleware.FinishRequestMiddleware,
 	)
 

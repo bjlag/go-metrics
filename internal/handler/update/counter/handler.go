@@ -36,4 +36,6 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storage.AddCounter(nameMetric, value)
+
+	w.WriteHeader(http.StatusOK)
 }

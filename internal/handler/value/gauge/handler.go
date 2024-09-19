@@ -34,4 +34,6 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
 	}
+
+	w.WriteHeader(http.StatusOK)
 }

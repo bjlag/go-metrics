@@ -38,5 +38,5 @@ func run() error {
 	memStorage := storage.NewMemStorage()
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
-	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage))
+	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, log))
 }

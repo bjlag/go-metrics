@@ -1,25 +1,58 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
+	"time"
+
+	"github.com/bjlag/go-metrics/internal/logger"
 )
 
-type Middleware func(http.Handler) http.Handler
-
-func Conveyor(next http.Handler, middlewares ...Middleware) http.Handler {
-	for _, middleware := range middlewares {
-		next = middleware(next)
-	}
-
-	return next
+type responseData struct {
+	status int
+	size   int
 }
 
-func LogRequestMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Handling request for %s, method %s", r.URL.Path, r.Method)
-		next.ServeHTTP(w, r)
-	})
+type responseDataWriter struct {
+	http.ResponseWriter
+
+	data *responseData
+}
+
+func (w *responseDataWriter) Write(buf []byte) (int, error) {
+	size, err := w.ResponseWriter.Write(buf)
+	w.data.size += size
+	return size, err
+}
+
+func (w *responseDataWriter) WriteHeader(status int) {
+	w.ResponseWriter.WriteHeader(status)
+	w.data.status = status
+}
+
+func CreateLogRequestMiddleware(logger logger.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			lw := &responseDataWriter{
+				ResponseWriter: w,
+				data: &responseData{
+					status: 0,
+					size:   0,
+				},
+			}
+
+			start := time.Now()
+			next.ServeHTTP(lw, r)
+			duration := time.Since(start)
+
+			logger.Info("Got request", map[string]interface{}{
+				"uri":      r.URL.Path,
+				"method":   r.Method,
+				"duration": duration,
+				"status":   lw.data.status,
+				"size":     lw.data.size,
+			})
+		})
+	}
 }
 
 func AllowPostMethodMiddleware(next http.Handler) http.Handler {
