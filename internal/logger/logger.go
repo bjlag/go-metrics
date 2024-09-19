@@ -2,6 +2,7 @@ package logger
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Logger interface {
@@ -22,6 +23,8 @@ func NewZapLogger(level string) (*ZapLogger, error) {
 
 	cfg := zap.NewDevelopmentConfig()
 	cfg.Level = lvl
+	cfg.DisableCaller = true
+	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	logger, err := cfg.Build()
 	if err != nil {
