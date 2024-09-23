@@ -19,24 +19,33 @@ import (
 )
 
 func initRouter(htmlRenderer *renderer.HTMLRenderer, memStorage storage.Repository, logger logger.Logger) *chi.Mux {
-	router := chi.NewRouter()
+	r := chi.NewRouter()
 
-	router.Use(
-		middleware.CreateLogRequestMiddleware(logger),
-		//middleware.FinishRequestMiddleware,
+	r.Use(
+		middleware.LogRequest(logger),
 	)
 
-	router.Get("/", list.NewHandler(htmlRenderer, memStorage).Handle)
+	r.Get("/", list.NewHandler(htmlRenderer, memStorage).Handle)
 
-	router.Post("/update/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
-	router.Post("/update/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
-	router.Post("/update/", updateGaneral.NewHandler(memStorage).Handle)
-	router.Post("/update/{kind}/{name}/{value}", updateUnknown.NewHandler().Handle)
+	r.Route("/update", func(r chi.Router) {
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
+		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
 
-	router.Get("/value/gauge/{name}", valueGauge.NewHandler(memStorage).Handle)
-	router.Get("/value/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
-	router.Post("/value/", valueGaneral.NewHandler(memStorage).Handle)
-	router.Get("/value/{kind}/{name}", valueUnknown.NewHandler().Handle)
+		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler().Handle)
+	})
 
-	return router
+	r.Route("/value", func(r chi.Router) {
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
+		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
+
+		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/gauge/{name}", valueGauge.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
+		r.With(textContentType).Post("/{kind}/{name}", valueUnknown.NewHandler().Handle)
+	})
+
+	return r
 }
