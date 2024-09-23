@@ -10,6 +10,7 @@ import (
 	updateUnknown "github.com/bjlag/go-metrics/internal/handler/update/unknown"
 	valueCaunter "github.com/bjlag/go-metrics/internal/handler/value/counter"
 	valueGauge "github.com/bjlag/go-metrics/internal/handler/value/gauge"
+	valueGaneral "github.com/bjlag/go-metrics/internal/handler/value/general"
 	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
@@ -34,6 +35,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, memStorage storage.Reposito
 
 	router.Get("/value/gauge/{name}", valueGauge.NewHandler(memStorage).Handle)
 	router.Get("/value/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
+	router.Post("/value/", valueGaneral.NewHandler(memStorage).Handle)
 	router.Get("/value/{kind}/{name}", valueUnknown.NewHandler().Handle)
 
 	return router
