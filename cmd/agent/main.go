@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/logger"
 )
 
 func main() {
@@ -20,10 +22,18 @@ func run() error {
 	parseFlags()
 	parseEnvs()
 
-	log.Println("Starting agent")
-	log.Printf("Sending metrics to %s\n", addr.String())
-	log.Printf("Poll interval %s\n", pollInterval)
-	log.Printf("Report interval %s\n", reportInterval)
+	log, err := logger.NewZapLogger(logLevel)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = log.Close()
+	}()
+
+	log.Info("Starting agent", nil)
+	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()), nil)
+	log.Info(fmt.Sprintf("Poll interval %s", pollInterval), nil)
+	log.Info(fmt.Sprintf("Report interval %s", reportInterval), nil)
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
 	metricClient := client.NewHTTPSender(addr.host, addr.port)
@@ -37,11 +47,14 @@ func run() error {
 
 			response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
 			if err != nil {
-				log.Println(err)
+				log.Error(err.Error(), nil)
 				continue
 			}
 
-			log.Printf("Sent request to %s, status %d", response.Request.URL, response.StatusCode())
+			log.Info("Sent request", map[string]interface{}{
+				"uri":    response.Request.URL,
+				"status": response.StatusCode(),
+			})
 		}
 	}()
 
@@ -58,11 +71,14 @@ func run() error {
 
 				response, err := metricClient.Send(metric)
 				if err != nil {
-					log.Println(err)
+					log.Error(err.Error(), nil)
 					return
 				}
 
-				log.Printf("Sent request to %s, status %d", response.Request.URL, response.StatusCode())
+				log.Info("Sent request", map[string]interface{}{
+					"uri":    response.Request.URL,
+					"status": response.StatusCode(),
+				})
 			}()
 		}
 

@@ -36,10 +36,12 @@ const (
 	defaultPort           = 8080
 	defaultPoolInterval   = 2
 	defaultReportInterval = 10
+	defaultLogLevel       = "info"
 
 	envAddressKey        = "ADDRESS"
 	envPollIntervalKey   = "POLL_INTERVAL"
 	envReportIntervalKey = "REPORT_INTERVAL"
+	envLogLevel          = "LOG_LEVEL"
 )
 
 var (
@@ -47,8 +49,11 @@ var (
 		host: defaultHost,
 		port: defaultPort,
 	}
+
 	pollInterval   = defaultPoolInterval * time.Second
 	reportInterval = defaultReportInterval * time.Second
+
+	logLevel string
 )
 
 func parseFlags() {
@@ -75,6 +80,7 @@ func parseFlags() {
 
 		return nil
 	})
+	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
 
 	flag.Parse()
 }
@@ -108,6 +114,10 @@ func parseEnvs() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
+		logLevel = envLogLevelValue
 	}
 }
 
