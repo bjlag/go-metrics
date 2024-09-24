@@ -25,6 +25,7 @@ func TestHandler_Handle(t *testing.T) {
 	tests := []struct {
 		name    string
 		storage func(ctrl *gomock.Controller) *mock.MockStorage
+		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
 		want    want
 	}{
@@ -35,6 +36,11 @@ func TestHandler_Handle(t *testing.T) {
 				mockStorage.EXPECT().SetGauge("test", 1.1).Times(1)
 
 				return mockStorage
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -52,6 +58,11 @@ func TestHandler_Handle(t *testing.T) {
 
 				return mockStorage
 			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+				return mockLog
+			},
 			fields: fields{
 				name:  "test",
 				value: "1",
@@ -68,6 +79,11 @@ func TestHandler_Handle(t *testing.T) {
 
 				return mockStorage
 			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+				return mockLog
+			},
 			fields: fields{
 				name:  "",
 				value: "1",
@@ -83,6 +99,11 @@ func TestHandler_Handle(t *testing.T) {
 				mockStorage.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -104,7 +125,7 @@ func TestHandler_Handle(t *testing.T) {
 			request.SetPathValue("name", tt.fields.name)
 			request.SetPathValue("value", tt.fields.value)
 
-			h := http.HandlerFunc(gauge.NewHandler(tt.storage(ctrl)).Handle)
+			h := http.HandlerFunc(gauge.NewHandler(tt.storage(ctrl), tt.log(ctrl)).Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()
