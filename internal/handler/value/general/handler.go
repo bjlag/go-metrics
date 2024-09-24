@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/handler/value/general/model"
@@ -12,11 +13,13 @@ import (
 
 type Handler struct {
 	storage Storage
+	log     Logger
 }
 
-func NewHandler(storage Storage) *Handler {
+func NewHandler(storage Storage, logger Logger) *Handler {
 	return &Handler{
 		storage: storage,
+		log:     logger,
 	}
 }
 
@@ -26,6 +29,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
+		h.log.Error(fmt.Sprintf("Error reading request body: %s", err.Error()), nil)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -34,16 +38,19 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &request)
 	if err != nil {
+		h.log.Error(fmt.Sprintf("Unmarshal error: %s", err.Error()), nil)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	if request.ID == "" {
+		h.log.Info("Metric ID not specified", nil)
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	if !request.IsValid() {
+		h.log.Info("Metric type is invalid", nil)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -52,16 +59,19 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
+			h.log.Info(fmt.Sprintf("%s metric not found: %s", request.MType, request.ID), nil)
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
+		h.log.Error(fmt.Sprintf("Failed to create response: %s", err.Error()), nil)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(response)
 	if err != nil {
+		h.log.Error(fmt.Sprintf("Failed to write response: %s", err.Error()), nil)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }

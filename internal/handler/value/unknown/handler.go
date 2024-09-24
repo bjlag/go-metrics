@@ -1,21 +1,21 @@
 package unknown
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 )
 
-const (
-	invalidMetricKindMsgErr = "Invalid metric type"
-)
+type Handler struct {
+	log Logger
+}
 
-type Handler struct{}
-
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(logger Logger) *Handler {
+	return &Handler{
+		log: logger,
+	}
 }
 
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Invalid metric type %s, url %s", r.PathValue("kind"), r.URL.Path)
-	http.Error(w, invalidMetricKindMsgErr, http.StatusBadRequest)
+	h.log.Info(fmt.Sprintf("Invalid metric type %s, url %s", r.PathValue("kind"), r.URL.Path), nil)
+	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }

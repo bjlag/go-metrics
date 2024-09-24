@@ -17,3 +17,11 @@ func NewMetricNotFoundError(kind string, name string) *MetricNotFoundError {
 func (e MetricNotFoundError) Error() string {
 	return fmt.Sprintf("%s metric '%s' not found", e.kind, e.name)
 }
+
+func (e MetricNotFoundError) Kind() string {
+	return e.kind
+}
+
+func (e MetricNotFoundError) Name() string {
+	return e.name
+}

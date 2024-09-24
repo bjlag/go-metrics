@@ -16,3 +16,7 @@ type Storage interface {
 	GetAllGauges() storage.Gauges
 	GetAllCounters() storage.Counters
 }
+
+type Logger interface {
+	Error(msg string, fields map[string]interface{})
+}

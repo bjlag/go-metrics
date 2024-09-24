@@ -5,18 +5,15 @@ import (
 	"strconv"
 )
 
-const (
-	emptyNameMetricMsgErr    = "Metric name not specified"
-	invalidMetricValueMsgErr = "Invalid metric value"
-)
-
 type Handler struct {
 	storage Storage
+	log     Logger
 }
 
-func NewHandler(storage Storage) *Handler {
+func NewHandler(storage Storage, logger Logger) *Handler {
 	return &Handler{
 		storage: storage,
+		log:     logger,
 	}
 }
 
@@ -25,13 +22,15 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	valueMetric := r.PathValue("value")
 
 	if nameMetric == "" {
-		http.Error(w, emptyNameMetricMsgErr, http.StatusNotFound)
+		h.log.Info("Metric name not specified", nil)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	value, err := strconv.ParseFloat(valueMetric, 64)
 	if err != nil {
-		http.Error(w, invalidMetricValueMsgErr, http.StatusBadRequest)
+		h.log.Error("Invalid metric value", nil)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 

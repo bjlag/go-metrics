@@ -18,33 +18,33 @@ import (
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, memStorage storage.Repository, logger logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
-		middleware.LogRequest(logger),
+		middleware.LogRequest(log),
 	)
 
-	r.Get("/", list.NewHandler(htmlRenderer, memStorage).Handle)
+	r.Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
 
 	r.Route("/update", func(r chi.Router) {
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
 		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
 
-		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler().Handle)
+		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler(log).Handle)
 	})
 
 	r.Route("/value", func(r chi.Router) {
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
 		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
 
-		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/gauge/{name}", valueGauge.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
-		r.With(textContentType).Post("/{kind}/{name}", valueUnknown.NewHandler().Handle)
+		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
+		r.With(textContentType).Post("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
 	})
 
 	return r
