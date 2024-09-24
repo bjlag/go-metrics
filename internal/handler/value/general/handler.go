@@ -3,9 +3,11 @@ package general
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/handler/value/general/model"
+	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 type Handler struct {
@@ -48,6 +50,12 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.createResponse(request)
 	if err != nil {
+		var metricNotFoundError *memory.MetricNotFoundError
+		if errors.As(err, &metricNotFoundError) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

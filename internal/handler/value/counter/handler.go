@@ -1,9 +1,11 @@
 package counter
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 const (
@@ -26,7 +28,13 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	storedValue, err := h.storage.GetCounter(name)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(metricNotFoundMsgErr, name), http.StatusNotFound)
+		var metricNotFoundError *memory.MetricNotFoundError
+		if errors.As(err, &metricNotFoundError) {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

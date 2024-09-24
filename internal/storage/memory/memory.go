@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -41,7 +40,7 @@ func (s *MemStorage) GetGauge(name string) (float64, error) {
 
 	value, ok := s.gauges[name]
 	if !ok {
-		return 0, fmt.Errorf("gauge metric '%s' not found", name)
+		return 0, NewMetricNotFoundError("gauge", name)
 	}
 
 	return value, nil
@@ -60,7 +59,7 @@ func (s *MemStorage) GetCounter(name string) (int64, error) {
 
 	value, ok := s.counters[name]
 	if !ok {
-		return 0, fmt.Errorf("counter metric '%s' not found", name)
+		return 0, NewMetricNotFoundError("counter", name)
 	}
 
 	return value, nil
