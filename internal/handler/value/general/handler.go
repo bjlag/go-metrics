@@ -64,8 +64,6 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
-
-	//w.WriteHeader(http.StatusOK)
 }
 
 func (h Handler) createResponse(request model.Request) ([]byte, error) {

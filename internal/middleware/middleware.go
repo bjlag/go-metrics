@@ -36,7 +36,7 @@ func LogRequest(logger logger.Logger) func(http.Handler) http.Handler {
 			lw := &responseDataWriter{
 				ResponseWriter: w,
 				data: &responseData{
-					status: 0,
+					status: http.StatusOK,
 					size:   0,
 				},
 			}
