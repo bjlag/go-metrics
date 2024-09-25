@@ -42,9 +42,9 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
 
 		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
-		r.With(textContentType).Post("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
-		r.With(textContentType).Post("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
-		r.With(textContentType).Post("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
+		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
+		r.With(textContentType).Get("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
+		r.With(textContentType).Get("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
 	})
 
 	return r
