@@ -7,11 +7,12 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/model"
 )
 
 const (
 	baseURLTemplate = "http://%s:%d"
-	urlTemplate     = "%s/update/%s/%s/%v"
+	urlTemplate     = "%s/update/"
 
 	timeout       = 100 * time.Millisecond
 	maxRetries    = 2
@@ -36,8 +37,32 @@ func NewHTTPSender(host string, port int) *MetricSender {
 }
 
 func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
-	url := fmt.Sprintf(urlTemplate, s.baseURL, metric.Kind(), metric.Name(), metric.Value())
-	request := s.client.R().SetHeader("Content-Type", "text/plain")
+	in := &model.UpdateIn{
+		ID:    metric.Name(),
+		MType: metric.Kind(),
+	}
+
+	switch metric.Kind() {
+	case collector.Gauge:
+		value, err := metric.GaugeValue()
+		if err != nil {
+			return nil, err
+		}
+		in.Value = &value
+	case collector.Counter:
+		value, err := metric.CounterValue()
+		if err != nil {
+			return nil, err
+		}
+		in.Delta = &value
+	default:
+		return nil, fmt.Errorf("unknown metric kind: %s", metric.Kind())
+	}
+
+	url := fmt.Sprintf(urlTemplate, s.baseURL)
+	request := s.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(in)
 
 	response, err := request.Post(url)
 	if err != nil {

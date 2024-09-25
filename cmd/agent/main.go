@@ -53,6 +53,7 @@ func run() error {
 
 			log.Info("Sent request", map[string]interface{}{
 				"uri":    response.Request.URL,
+				"body":   response.Request.Body,
 				"status": response.StatusCode(),
 			})
 		}
@@ -77,6 +78,7 @@ func run() error {
 
 				log.Info("Sent request", map[string]interface{}{
 					"uri":    response.Request.URL,
+					"body":   response.Request.Body,
 					"status": response.StatusCode(),
 				})
 			}()
