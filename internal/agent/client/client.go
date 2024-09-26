@@ -1,6 +1,9 @@
 package client
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -59,10 +62,22 @@ func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
 		return nil, fmt.Errorf("unknown metric kind: %s", metric.Kind())
 	}
 
+	jsonb, err := json.Marshal(in)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal metric: %s", err)
+	}
+
+	compressed, err := compress(jsonb)
+	if err != nil {
+		return nil, err
+	}
+
 	url := fmt.Sprintf(urlTemplate, s.baseURL)
 	request := s.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(in)
+		SetHeader("Content-Encoding", "gzip").
+		SetHeader("Accept-Encoding", "gzip").
+		SetBody(compressed)
 
 	response, err := request.Post(url)
 	if err != nil {
@@ -70,4 +85,24 @@ func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
 	}
 
 	return response, nil
+}
+
+func compress(src []byte) ([]byte, error) {
+	var buf bytes.Buffer
+
+	wr, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip writer: %s", err)
+	}
+	_, err = wr.Write(src)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress metric: %s", err)
+	}
+
+	err = wr.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to close gzip writer: %s", err)
+	}
+
+	return buf.Bytes(), nil
 }
