@@ -3,58 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strings"
-	"time"
-
-	"github.com/bjlag/go-metrics/internal/logger"
 )
-
-type responseData struct {
-	status int
-	size   int
-}
-
-type responseDataWriter struct {
-	http.ResponseWriter
-
-	data *responseData
-}
-
-func (w *responseDataWriter) Write(buf []byte) (int, error) {
-	size, err := w.ResponseWriter.Write(buf)
-	w.data.size += size
-	return size, err
-}
-
-func (w *responseDataWriter) WriteHeader(status int) {
-	w.ResponseWriter.WriteHeader(status)
-	w.data.status = status
-}
-
-func LogRequest(logger logger.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			lw := &responseDataWriter{
-				ResponseWriter: w,
-				data: &responseData{
-					status: http.StatusOK,
-					size:   0,
-				},
-			}
-
-			start := time.Now()
-			next.ServeHTTP(lw, r)
-			duration := time.Since(start)
-
-			logger.Info("Got request", map[string]interface{}{
-				"uri":      r.URL.Path,
-				"method":   r.Method,
-				"duration": duration,
-				"status":   lw.data.status,
-				"size":     lw.data.size,
-			})
-		})
-	}
-}
 
 func AllowPostMethodMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

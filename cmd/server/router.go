@@ -22,7 +22,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	r := chi.NewRouter()
 
 	r.Use(
-		middleware.LogRequest(log),
+		middleware.NewLogRequest(log).Handle,
 		middleware.NewGzip(log).Handle,
 	)
 

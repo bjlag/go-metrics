@@ -85,6 +85,7 @@ func (r *gzipReader) Close() error {
 
 type gzipWriter struct {
 	http.ResponseWriter
+
 	zw *gzip.Writer
 }
 
