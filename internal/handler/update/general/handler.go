@@ -31,6 +31,9 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	var in model.UpdateIn
 

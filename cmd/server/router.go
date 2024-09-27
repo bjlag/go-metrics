@@ -23,6 +23,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 
 	r.Use(
 		middleware.LogRequest(log),
+		middleware.NewGzip(log).Handle,
 	)
 
 	r.Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	logNativ "log"
 	"runtime"
 	"sync"
 	"time"
@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalln(err)
+		logNativ.Fatalln(err)
 	}
 }
 
@@ -52,9 +52,9 @@ func run() error {
 			}
 
 			log.Info("Sent request", map[string]interface{}{
-				"uri":    response.Request.URL,
-				"body":   response.Request.Body,
-				"status": response.StatusCode(),
+				"uri":      response.Request.URL,
+				"response": string(response.Body()),
+				"status":   response.StatusCode(),
 			})
 		}
 	}()
@@ -77,9 +77,9 @@ func run() error {
 				}
 
 				log.Info("Sent request", map[string]interface{}{
-					"uri":    response.Request.URL,
-					"body":   response.Request.Body,
-					"status": response.StatusCode(),
+					"uri":      response.Request.URL,
+					"response": string(response.Body()),
+					"status":   response.StatusCode(),
 				})
 			}()
 		}
