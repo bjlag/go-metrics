@@ -27,7 +27,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	)
 
 	r.Route("/", func(r chi.Router) {
-		r.With(middleware.SetHeaderRequest("Content-Type", []string{"text/html"})).
+		r.With(middleware.SetHeaderResponse("Content-Type", []string{"text/html"})).
 			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
 	})
 
