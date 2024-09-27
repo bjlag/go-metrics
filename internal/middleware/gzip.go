@@ -24,7 +24,7 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w
 
-		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		if isRequestSupportedCompress(r) {
 			zr, err := newGzipReader(r.Body)
 			if err != nil {
 				m.log.Error(err.Error(), nil)
@@ -58,6 +58,19 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 
 		next.ServeHTTP(ow, r)
 	})
+}
+
+func isRequestSupportedCompress(r *http.Request) bool {
+	if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		return false
+	}
+
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") &&
+		!strings.Contains(r.Header.Get("Content-Type"), "text/html") {
+		return false
+	}
+
+	return true
 }
 
 type gzipReader struct {

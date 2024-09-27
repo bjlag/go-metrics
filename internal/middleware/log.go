@@ -26,11 +26,12 @@ func (m LogRequest) Handle(next http.Handler) http.Handler {
 		duration := time.Since(start)
 
 		m.log.Info("Got request", map[string]interface{}{
-			"uri":      r.URL.Path,
-			"method":   r.Method,
-			"duration": duration,
-			"status":   dw.data.status,
-			"size":     dw.data.size,
+			"uri":          r.URL.Path,
+			"method":       r.Method,
+			"content_type": r.Header.Get("Content-Type"),
+			"duration":     duration,
+			"status":       dw.data.status,
+			"size":         dw.data.size,
 		})
 	})
 }
