@@ -26,7 +26,10 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		middleware.NewGzip(log).Handle,
 	)
 
-	r.Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
+	r.Route("/", func(r chi.Router) {
+		r.With(middleware.SetHeaderRequest("Content-Type", []string{"text/html"})).
+			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
+	})
 
 	r.Route("/update", func(r chi.Router) {
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
