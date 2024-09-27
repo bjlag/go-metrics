@@ -31,12 +31,18 @@ func (o *netAddress) Set(value string) error {
 }
 
 const (
-	defaultHost     = "localhost"
-	defaultPort     = 8080
-	defaultLogLevel = "info"
+	defaultHost            = "localhost"
+	defaultPort            = 8080
+	defaultLogLevel        = "info"
+	defaultStoreInterval   = 300
+	defaultFileStoragePath = "data/metrics.txt"
+	defaultRestore         = true
 
-	envAddress  = "ADDRESS"
-	envLogLevel = "LOG_LEVEL"
+	envAddress         = "ADDRESS"
+	envLogLevel        = "LOG_LEVEL"
+	envStoreInterval   = "STORE_INTERVAL"
+	envFileStoragePath = "FILE_STORAGE_PATH"
+	envRestore         = "RESTORE"
 )
 
 var (
@@ -45,7 +51,10 @@ var (
 		port: defaultPort,
 	}
 
-	logLevel string
+	logLevel        string
+	storeInterval   int
+	fileStoragePath string
+	restore         bool
 )
 
 func parseFlags() {
@@ -53,6 +62,9 @@ func parseFlags() {
 
 	flag.Var(addr, "a", "Server address: host:port")
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
+	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "Store interval in seconds")
+	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
+	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
 	flag.Parse()
 }
 
@@ -69,6 +81,22 @@ func parseEnvs() {
 
 	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
 		logLevel = envLogLevelValue
+	}
+
+	if envStoreIntervalValue := os.Getenv(envStoreInterval); envStoreIntervalValue != "" {
+		value, err := strconv.Atoi(envStoreIntervalValue)
+		if err != nil {
+			log.Fatal(err)
+		}
+		storeInterval = value
+	}
+
+	if envFileStoragePathValue := os.Getenv(envFileStoragePath); envFileStoragePathValue != "" {
+		fileStoragePath = envFileStoragePathValue
+	}
+
+	if envRestoreValue := os.Getenv(envRestore); envRestoreValue != "" {
+		restore = true
 	}
 }
 
