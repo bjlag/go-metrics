@@ -34,6 +34,7 @@ func run() error {
 	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()), nil)
 	log.Info(fmt.Sprintf("Poll interval %s", pollInterval), nil)
 	log.Info(fmt.Sprintf("Report interval %s", reportInterval), nil)
+	log.Info(fmt.Sprintf("Log level '%s'", logLevel), nil)
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
 	metricClient := client.NewHTTPSender(addr.host, addr.port)
