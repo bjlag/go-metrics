@@ -2,11 +2,22 @@
 
 package general
 
+import (
+	"github.com/bjlag/go-metrics/internal/storage"
+	"github.com/bjlag/go-metrics/internal/storage/file"
+)
+
 type Storage interface {
 	SetGauge(name string, value float64)
 	AddCounter(name string, value int64)
 	GetGauge(name string) (float64, error)
 	GetCounter(name string) (int64, error)
+	GetAllGauges() storage.Gauges
+	GetAllCounters() storage.Counters
+}
+
+type BStorage interface {
+	Save(data []file.Metric) error
 }
 
 type Logger interface {

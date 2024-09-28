@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/logger"
-	storage "github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/storage/file"
+	"github.com/bjlag/go-metrics/internal/storage/memory"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
@@ -35,8 +36,32 @@ func run() error {
 		"address": addr.String(),
 	})
 
-	memStorage := storage.NewMemStorage()
+	memStorage := memory.NewStorage()
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
-	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, log))
+	backup, err := file.NewStorage(fileStoragePath, 0)
+	if err != nil {
+		log.Error("Failed to create backup storage", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
+	}
+
+	data, err := backup.Load()
+	if err != nil {
+		log.Error("Failed to load backup data", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
+	for _, value := range data {
+		switch value.MType {
+		case "counter":
+			memStorage.AddCounter(value.ID, *value.Delta)
+		case "gauge":
+			memStorage.SetGauge(value.ID, *value.Value)
+		}
+	}
+
+	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, backup, log))
 }

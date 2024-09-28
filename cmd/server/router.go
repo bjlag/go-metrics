@@ -15,10 +15,11 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage"
+	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup *file.Storage, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -35,7 +36,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
 		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
 
-		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, log).Handle)
+		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, log).Handle)
 		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(storage, log).Handle)
 		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler(log).Handle)

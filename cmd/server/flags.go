@@ -35,7 +35,7 @@ const (
 	defaultPort            = 8080
 	defaultLogLevel        = "info"
 	defaultStoreInterval   = 300
-	defaultFileStoragePath = "data/metrics.txt"
+	defaultFileStoragePath = "data/metrics.json"
 	defaultRestore         = true
 
 	envAddress         = "ADDRESS"
