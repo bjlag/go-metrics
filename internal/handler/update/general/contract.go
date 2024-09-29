@@ -4,7 +4,6 @@ package general
 
 import (
 	"github.com/bjlag/go-metrics/internal/storage"
-	"github.com/bjlag/go-metrics/internal/storage/file"
 )
 
 type Storage interface {
@@ -16,8 +15,8 @@ type Storage interface {
 	GetAllCounters() storage.Counters
 }
 
-type BStorage interface {
-	Save(data []file.Metric) error
+type Backup interface {
+	Create() error
 }
 
 type Logger interface {

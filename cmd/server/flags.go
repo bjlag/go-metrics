@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type netAddress struct {
@@ -52,7 +53,7 @@ var (
 	}
 
 	logLevel        string
-	storeInterval   int
+	storeInterval   = defaultStoreInterval * time.Second
 	fileStoragePath string
 	restore         bool
 )
@@ -62,7 +63,16 @@ func parseFlags() {
 
 	flag.Var(addr, "a", "Server address: host:port")
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
-	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "Store interval in seconds")
+	flag.Func("i", "Store interval in seconds", func(s string) error {
+		var err error
+
+		storeInterval, err = stringToDurationInSeconds(s)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
 	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
 	flag.Parse()
@@ -84,11 +94,12 @@ func parseEnvs() {
 	}
 
 	if envStoreIntervalValue := os.Getenv(envStoreInterval); envStoreIntervalValue != "" {
-		value, err := strconv.Atoi(envStoreIntervalValue)
+		var err error
+
+		storeInterval, err = stringToDurationInSeconds(envStoreIntervalValue)
 		if err != nil {
 			log.Fatal(err)
 		}
-		storeInterval = value
 	}
 
 	if envFileStoragePathValue := os.Getenv(envFileStoragePath); envFileStoragePathValue != "" {
@@ -112,4 +123,13 @@ func parseHostAndPort(s string) (string, int, error) {
 	}
 
 	return values[0], port, nil
+}
+
+func stringToDurationInSeconds(s string) (time.Duration, error) {
+	val, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(val) * time.Second, nil
 }

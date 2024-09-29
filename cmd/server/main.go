@@ -5,7 +5,9 @@ import (
 	nativLog "log"
 	"net/http"
 
+	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
@@ -37,23 +39,23 @@ func run() error {
 		"address": addr.String(),
 	})
 	log.Info(fmt.Sprintf("Log level '%s'", logLevel), nil)
-	log.Info(fmt.Sprintf("Store interval %ds", storeInterval), nil)
+	log.Info(fmt.Sprintf("Store interval %s", storeInterval), nil)
 	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath), nil)
 	log.Info(fmt.Sprintf("Restore metrics %v", restore), nil)
 
 	memStorage := memory.NewStorage()
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
-	backup, err := file.NewStorage(fileStoragePath, storeInterval)
+	fileStorage, err := file.NewStorage(fileStoragePath)
 	if err != nil {
-		log.Error("Failed to create backup storage", map[string]interface{}{
+		log.Error("Failed to create file storage", map[string]interface{}{
 			"error": err.Error(),
 		})
 		return err
 	}
 
 	if restore {
-		data, err := backup.Load()
+		data, err := fileStorage.Load()
 		if err != nil {
 			log.Error("Failed to load backup data", map[string]interface{}{
 				"error": err.Error(),
@@ -62,9 +64,9 @@ func run() error {
 
 		for _, value := range data {
 			switch value.MType {
-			case "counter":
+			case model.TypeCounter:
 				memStorage.AddCounter(value.ID, *value.Delta)
-			case "gauge":
+			case model.TypeGauge:
 				memStorage.SetGauge(value.ID, *value.Value)
 			}
 		}
@@ -72,5 +74,7 @@ func run() error {
 		log.Info("Backup loaded", map[string]interface{}{})
 	}
 
-	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, backup, log))
+	backupCreator := syncBackup.New(memStorage, fileStorage, log)
+
+	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, backupCreator, log))
 }

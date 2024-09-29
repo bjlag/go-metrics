@@ -4,21 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/bjlag/go-metrics/internal/storage/file"
 	"net/http"
-	"sync"
 
 	"github.com/bjlag/go-metrics/internal/model"
 )
 
 type Handler struct {
-	lock    sync.RWMutex
 	storage Storage
-	backup  BStorage
+	backup  Backup
 	log     Logger
 }
 
-func NewHandler(storage Storage, backup BStorage, logger Logger) *Handler {
+func NewHandler(storage Storage, backup Backup, logger Logger) *Handler {
 	return &Handler{
 		storage: storage,
 		backup:  backup,
@@ -68,7 +65,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.backupData()
+	err = h.backup.Create()
 	if err != nil {
 		h.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
 	}
@@ -95,40 +92,6 @@ func (h *Handler) saveMetric(request model.UpdateIn) error {
 		h.storage.SetGauge(request.ID, *request.Value)
 	default:
 		return fmt.Errorf("unknown metric type: %s", request.MType)
-	}
-
-	return nil
-}
-
-func (h *Handler) backupData() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	counters := h.storage.GetAllCounters()
-	gauges := h.storage.GetAllGauges()
-
-	data := make([]file.Metric, 0, len(counters)+len(gauges))
-
-	for id, value := range counters {
-		data = append(data, file.Metric{
-			ID:    id,
-			MType: "counter",
-			Delta: &value,
-		})
-	}
-
-	for id, value := range gauges {
-		data = append(data, file.Metric{
-			ID:    id,
-			MType: "gauge",
-			Value: &value,
-		})
-	}
-
-	err := h.backup.Save(data)
-	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
-		return err
 	}
 
 	return nil

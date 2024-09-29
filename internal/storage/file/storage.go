@@ -16,23 +16,17 @@ type Metric struct {
 }
 
 type Storage struct {
-	lock     sync.RWMutex
-	path     string
-	interval int
+	lock sync.RWMutex
+	path string
 }
 
-func NewStorage(path string, interval int) (*Storage, error) {
-	if interval < 0 {
-		return nil, errors.New("invalid interval")
-	}
-
+func NewStorage(path string) (*Storage, error) {
 	if len(path) == 0 {
 		return nil, errors.New("path cannot be empty")
 	}
 
 	return &Storage{
-		path:     path,
-		interval: interval,
+		path: path,
 	}, nil
 }
 

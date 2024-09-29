@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/bjlag/go-metrics/internal/handler/list"
@@ -15,11 +16,10 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage"
-	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup *file.Storage, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup *sync.Backup, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
