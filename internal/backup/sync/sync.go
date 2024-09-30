@@ -2,7 +2,6 @@ package sync
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
@@ -11,7 +10,6 @@ import (
 )
 
 type Backup struct {
-	lock     sync.RWMutex
 	storage  *memory.Storage
 	fStorage *file.Storage
 	log      logger.Logger

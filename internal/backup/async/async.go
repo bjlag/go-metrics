@@ -2,7 +2,6 @@ package async
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/bjlag/go-metrics/internal/logger"
@@ -12,7 +11,6 @@ import (
 )
 
 type Backup struct {
-	lock     sync.RWMutex
 	storage  *memory.Storage
 	fStorage *file.Storage
 	interval time.Duration
