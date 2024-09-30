@@ -3,6 +3,7 @@
 package general
 
 import (
+	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
@@ -20,6 +21,7 @@ type Backup interface {
 }
 
 type Logger interface {
-	Error(msg string, fields map[string]interface{})
-	Info(msg string, fields map[string]interface{})
+	WithField(key string, value interface{}) logger.Logger
+	Error(msg string)
+	Info(msg string)
 }

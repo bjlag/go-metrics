@@ -45,11 +45,11 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	log.Info("Starting agent", nil)
-	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()), nil)
-	log.Info(fmt.Sprintf("Poll interval %s", pollInterval), nil)
-	log.Info(fmt.Sprintf("Report interval %s", reportInterval), nil)
-	log.Info(fmt.Sprintf("Log level '%s'", logLevel), nil)
+	log.Info("starting agent")
+	log.Info(fmt.Sprintf("sending metrics to %s", addr.String()))
+	log.Info(fmt.Sprintf("poll interval %s", pollInterval))
+	log.Info(fmt.Sprintf("report interval %s", reportInterval))
+	log.Info(fmt.Sprintf("log level '%s'", logLevel))
 
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
 	metricClient := client.NewHTTPSender(addr.host, addr.port)
@@ -64,29 +64,29 @@ func run() error {
 	go func() {
 		<-ctx.Done()
 
-		log.Info("Graceful shutting down agent", nil)
+		log.Info("graceful shutting down agent")
 	}()
 
 	g.Go(func() error {
 		for {
 			select {
 			case <-gCtx.Done():
-				log.Info("Stopped read stats", nil)
+				log.Info("stopped read stats")
 				return nil
 			case <-pollTicker.C:
 				metricCollector.ReadStats()
 
 				response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
 				if err != nil {
-					log.Error(err.Error(), nil)
+					log.WithField("error", err.Error()).
+						Error("error in sending metric")
 					continue
 				}
 
-				log.Info("Sent request", map[string]interface{}{
-					"uri":      response.Request.URL,
-					"response": string(response.Body()),
-					"status":   response.StatusCode(),
-				})
+				log.WithField("uri", response.Request.URL).
+					WithField("response", string(response.Body())).
+					WithField("status", response.StatusCode()).
+					Info("sent request")
 			}
 		}
 	})
@@ -97,7 +97,7 @@ func run() error {
 		for {
 			select {
 			case <-gCtx.Done():
-				log.Info("Stopped send metrics", nil)
+				log.Info("stopped send metrics")
 				return nil
 			case <-reportTicker.C:
 				for _, metric := range metricCollector.Collect() {
@@ -111,11 +111,10 @@ func run() error {
 								return err
 							}
 
-							log.Info("Sent request", map[string]interface{}{
-								"uri":      response.Request.URL,
-								"response": string(response.Body()),
-								"status":   response.StatusCode(),
-							})
+							log.WithField("uri", response.Request.URL).
+								WithField("response", string(response.Body())).
+								WithField("status", response.StatusCode()).
+								Info("sent request")
 						}
 
 						return nil
@@ -123,7 +122,7 @@ func run() error {
 				}
 
 				if err := gr.Wait(); err != nil {
-					log.Error(err.Error(), nil)
+					log.Error(err.Error())
 				}
 			}
 		}

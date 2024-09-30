@@ -1,7 +1,6 @@
 package unknown
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -16,6 +15,8 @@ func NewHandler(logger Logger) *Handler {
 }
 
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
-	h.log.Info(fmt.Sprintf("Invalid metric type %s, url %s", r.PathValue("kind"), r.URL.Path), nil)
+	h.log.WithField("type", r.PathValue("kind")).
+		WithField("url", r.URL.Path).
+		Info("Invalid metric type")
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }

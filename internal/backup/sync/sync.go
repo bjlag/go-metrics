@@ -1,8 +1,6 @@
 package sync
 
 import (
-	"fmt"
-
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage/file"
@@ -47,7 +45,8 @@ func (b *Backup) Create() error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
+		b.log.WithField("error", err.Error()).
+			Error("failed to backup data")
 		return err
 	}
 

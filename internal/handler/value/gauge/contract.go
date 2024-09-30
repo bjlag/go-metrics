@@ -2,12 +2,15 @@
 
 package counter
 
+import "github.com/bjlag/go-metrics/internal/logger"
+
 type Storage interface {
 	GetGauge(name string) (float64, error)
 	GetCounter(name string) (int64, error)
 }
 
 type Logger interface {
-	Error(msg string, fields map[string]interface{})
-	Info(msg string, fields map[string]interface{})
+	WithField(key string, value interface{}) logger.Logger
+	Error(msg string)
+	Info(msg string)
 }

@@ -29,7 +29,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Error reading request body: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("error reading request body")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -41,45 +42,50 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Unmarshal error: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Unmarshal error")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	if in.ID == "" {
-		h.log.Info("Metric ID not specified", nil)
+		h.log.Info("Metric ID not specified")
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	if !in.IsValid() {
-		h.log.Info("Metric type is invalid", nil)
+		h.log.Info("Metric type is invalid")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	err = h.saveMetric(in)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to save metric: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to save metric")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	err = h.backup.Create()
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to backup data")
 	}
 
 	data, err := h.getResponseData(in)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to get response data: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to get response data")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to write response: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to write response")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -27,7 +26,8 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 		if isRequestSupportedCompress(r) {
 			zr, err := newGzipReader(r.Body)
 			if err != nil {
-				m.log.Error(err.Error(), nil)
+				m.log.WithField("error", err.Error()).
+					Error("error creating gzip reader")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -38,7 +38,8 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			zw, err := newGzipWriter(w)
 			if err != nil {
-				m.log.Error(err.Error(), nil)
+				m.log.WithField("error", err.Error()).
+					Error("error creating gzip writer")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -46,7 +47,8 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 			defer func() {
 				err = zw.Close()
 				if err != nil {
-					m.log.Error(fmt.Sprintf("failed to close gzip writer: %s", err), nil)
+					m.log.WithField("error", err.Error()).
+						Error("failed to close gzip writer")
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 			}()

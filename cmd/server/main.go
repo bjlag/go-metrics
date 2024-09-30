@@ -52,34 +52,29 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	log.Info("Started server", map[string]interface{}{
-		"address": addr.String(),
-	})
-	log.Info(fmt.Sprintf("Log level '%s'", logLevel), nil)
-	log.Info(fmt.Sprintf("Store interval %s", storeInterval), nil)
-	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath), nil)
-	log.Info(fmt.Sprintf("Restore metrics %v", restore), nil)
+	log.WithField("address", addr.String()).Info("started server")
+	log.Info(fmt.Sprintf("log level '%s'", logLevel))
+	log.Info(fmt.Sprintf("store interval %s", storeInterval))
+	log.Info(fmt.Sprintf("file storage path '%s'", fileStoragePath))
+	log.Info(fmt.Sprintf("restore metrics %v", restore))
 
 	memStorage := memory.NewStorage()
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
 	fileStorage, err := file.NewStorage(fileStoragePath)
 	if err != nil {
-		log.Error("Failed to create file storage", map[string]interface{}{
-			"error": err.Error(),
-		})
+		log.WithField("error", err.Error()).Error("failed to create file storage")
 		return err
 	}
 
 	if restore {
 		err := restoreData(fileStorage, memStorage)
 		if err != nil {
-			log.Error("Failed to load backup data", map[string]interface{}{
-				"error": err.Error(),
-			})
+			log.WithField("error", err.Error()).
+				Error("failed to load backup data")
 		}
 
-		log.Info("Backup loaded", nil)
+		log.Info("backup loaded")
 	}
 
 	var (
@@ -109,7 +104,7 @@ func run() error {
 	g.Go(func() error {
 		<-gCtx.Done()
 
-		log.Info("Graceful shutting down server", nil)
+		log.Info("graceful shutting down server")
 		ba.Stop()
 		return httpServer.Shutdown(context.Background())
 	})

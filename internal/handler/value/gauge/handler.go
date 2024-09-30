@@ -2,7 +2,6 @@ package counter
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,19 +27,22 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
-			h.log.Info(fmt.Sprintf("Gauge metric not found: %s", name), nil)
+			h.log.WithField("name", name).
+				Info("Gauge metric not found")
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
-		h.log.Error(fmt.Sprintf("Failed to get gauge value: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to get gauge value")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write([]byte(strconv.FormatFloat(storeValue, 'f', -1, 64)))
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to write response: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to write response")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }

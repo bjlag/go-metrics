@@ -25,14 +25,14 @@ func (m LogRequest) Handle(next http.Handler) http.Handler {
 		next.ServeHTTP(dw, r)
 		duration := time.Since(start)
 
-		m.log.Info("Got request", map[string]interface{}{
-			"uri":          r.URL.Path,
-			"method":       r.Method,
-			"content_type": r.Header.Get("Content-Type"),
-			"duration":     duration,
-			"status":       dw.data.status,
-			"size":         dw.data.size,
-		})
+		m.log.
+			WithField("uri", r.URL.Path).
+			WithField("method", r.Method).
+			WithField("content_type", r.Header.Get("Content-Type")).
+			WithField("duration", duration).
+			WithField("status", dw.data.status).
+			WithField("size", dw.data.size).
+			Info("got request")
 	})
 }
 

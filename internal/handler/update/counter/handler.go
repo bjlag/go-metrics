@@ -1,7 +1,6 @@
 package counter
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -25,14 +24,15 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	valueMetric := r.PathValue("value")
 
 	if nameMetric == "" {
-		h.log.Info("Metric name not specified", nil)
+		h.log.Info("Metric name not specified")
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	value, err := strconv.ParseInt(valueMetric, 10, 64)
 	if err != nil {
-		h.log.Error("Invalid metric value", nil)
+		h.log.WithField("error", err.Error()).
+			Error("Invalid metric value")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -41,6 +41,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = h.backup.Create()
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to backup data")
 	}
 }

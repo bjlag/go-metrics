@@ -6,9 +6,10 @@ import (
 )
 
 type Logger interface {
-	Error(msg string, fields map[string]interface{})
-	Info(msg string, fields map[string]interface{})
-	Debug(msg string, fields map[string]interface{})
+	WithField(key string, value interface{}) Logger
+	Error(msg string)
+	Info(msg string)
+	Debug(msg string)
 }
 
 type ZapLogger struct {
@@ -44,23 +45,20 @@ func (l *ZapLogger) Close() error {
 	return nil
 }
 
-func (l *ZapLogger) Error(msg string, fields map[string]interface{}) {
-	l.logger.Error(msg, getZapFields(fields)...)
-}
-
-func (l *ZapLogger) Info(msg string, fields map[string]interface{}) {
-	l.logger.Info(msg, getZapFields(fields)...)
-}
-
-func (l *ZapLogger) Debug(msg string, fields map[string]interface{}) {
-	l.logger.Debug(msg, getZapFields(fields)...)
-}
-
-func getZapFields(fields map[string]interface{}) []zap.Field {
-	zapFields := make([]zap.Field, 0, len(fields))
-	for filed, value := range fields {
-		zapFields = append(zapFields, zap.Any(filed, value))
+func (l *ZapLogger) WithField(key string, value interface{}) Logger {
+	return &ZapLogger{
+		logger: l.logger.With(zap.Any(key, value)),
 	}
+}
 
-	return zapFields
+func (l *ZapLogger) Error(msg string) {
+	l.logger.Error(msg)
+}
+
+func (l *ZapLogger) Info(msg string) {
+	l.logger.Info(msg)
+}
+
+func (l *ZapLogger) Debug(msg string) {
+	l.logger.Debug(msg)
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/model"
@@ -29,7 +28,8 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	_, err = buf.ReadFrom(r.Body)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Error reading request body: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Error reading request body")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -38,19 +38,20 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Unmarshal error: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Unmarshal error")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	if in.ID == "" {
-		h.log.Info("Metric ID not specified", nil)
+		h.log.Info("Metric ID not specified")
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	if !in.IsValid() {
-		h.log.Info("Metric type is invalid", nil)
+		h.log.Info("Metric type is invalid")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
@@ -59,19 +60,23 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
-			h.log.Info(fmt.Sprintf("%s metric not found: %s", in.MType, in.ID), nil)
+			h.log.WithField("type", in.MType).
+				WithField("id", in.ID).
+				Info("metric not found")
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
-		h.log.Error(fmt.Sprintf("Failed to get response data: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to get response data")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to write response: %s", err.Error()), nil)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to write response")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }

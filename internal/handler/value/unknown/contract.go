@@ -2,6 +2,9 @@
 
 package unknown
 
+import "github.com/bjlag/go-metrics/internal/logger"
+
 type Logger interface {
-	Info(msg string, fields map[string]interface{})
+	WithField(key string, value interface{}) logger.Logger
+	Info(msg string)
 }

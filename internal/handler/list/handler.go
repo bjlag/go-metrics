@@ -1,7 +1,6 @@
 package list
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -38,7 +37,8 @@ func (h Handler) Handle(w http.ResponseWriter, _ *http.Request) {
 
 	err := h.renderer.Render(w, "list.html", data)
 	if err != nil {
-		h.log.Error(fmt.Sprintf("Failed to render list.html: %s", err.Error()), nil)
+		h.log.WithField("err", err.Error()).
+			Error("failed to render list.html")
 		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
 	}
 }

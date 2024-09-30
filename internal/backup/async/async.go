@@ -1,7 +1,6 @@
 package async
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/bjlag/go-metrics/internal/logger"
@@ -37,7 +36,8 @@ func (b *Backup) Start() {
 			if b.needUpdate {
 				err := b.update()
 				if err != nil {
-					b.log.Error("Failed to create backup", nil)
+					b.log.WithField("error", err.Error()).
+						Error("failed to update backup")
 				}
 
 				b.needUpdate = false
@@ -45,7 +45,7 @@ func (b *Backup) Start() {
 		}
 	}()
 
-	b.log.Info("Async backup started", nil)
+	b.log.Info("async backup started")
 }
 
 func (b *Backup) Stop() {
@@ -53,10 +53,11 @@ func (b *Backup) Stop() {
 
 	err := b.update()
 	if err != nil {
-		b.log.Error("Failed to update backup while stopping", nil)
+		b.log.WithField("error", err.Error()).
+			Error("failed to update backup while stopping")
 	}
 
-	b.log.Info("Backup stopped", nil)
+	b.log.Info("backup stopped")
 }
 
 func (b *Backup) Create() error {
@@ -89,7 +90,8 @@ func (b *Backup) update() error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
+		b.log.WithField("error", err.Error()).
+			Error("failed to backup data")
 		return err
 	}
 
