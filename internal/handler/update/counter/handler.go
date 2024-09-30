@@ -6,12 +6,12 @@ import (
 )
 
 type Handler struct {
-	storage Storage
-	backup  Backup
-	log     Logger
+	storage storage
+	backup  backup
+	log     log
 }
 
-func NewHandler(storage Storage, backup Backup, logger Logger) *Handler {
+func NewHandler(storage storage, backup backup, logger log) *Handler {
 	return &Handler{
 		storage: storage,
 		backup:  backup,

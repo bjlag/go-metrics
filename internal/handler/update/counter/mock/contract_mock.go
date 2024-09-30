@@ -7,69 +7,70 @@ package mock
 import (
 	reflect "reflect"
 
+	logger "github.com/bjlag/go-metrics/internal/logger"
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockStorage is a mock of Storage interface.
-type MockStorage struct {
+// Mockstorage is a mock of storage interface.
+type Mockstorage struct {
 	ctrl     *gomock.Controller
-	recorder *MockStorageMockRecorder
+	recorder *MockstorageMockRecorder
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage.
-type MockStorageMockRecorder struct {
-	mock *MockStorage
+// MockstorageMockRecorder is the mock recorder for Mockstorage.
+type MockstorageMockRecorder struct {
+	mock *Mockstorage
 }
 
-// NewMockStorage creates a new mock instance.
-func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
-	mock := &MockStorage{ctrl: ctrl}
-	mock.recorder = &MockStorageMockRecorder{mock}
+// NewMockstorage creates a new mock instance.
+func NewMockstorage(ctrl *gomock.Controller) *Mockstorage {
+	mock := &Mockstorage{ctrl: ctrl}
+	mock.recorder = &MockstorageMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
+func (m *Mockstorage) EXPECT() *MockstorageMockRecorder {
 	return m.recorder
 }
 
 // AddCounter mocks base method.
-func (m *MockStorage) AddCounter(name string, value int64) {
+func (m *Mockstorage) AddCounter(name string, value int64) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AddCounter", name, value)
 }
 
 // AddCounter indicates an expected call of AddCounter.
-func (mr *MockStorageMockRecorder) AddCounter(name, value interface{}) *gomock.Call {
+func (mr *MockstorageMockRecorder) AddCounter(name, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCounter", reflect.TypeOf((*MockStorage)(nil).AddCounter), name, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCounter", reflect.TypeOf((*Mockstorage)(nil).AddCounter), name, value)
 }
 
-// MockBackup is a mock of Backup interface.
-type MockBackup struct {
+// Mockbackup is a mock of backup interface.
+type Mockbackup struct {
 	ctrl     *gomock.Controller
-	recorder *MockBackupMockRecorder
+	recorder *MockbackupMockRecorder
 }
 
-// MockBackupMockRecorder is the mock recorder for MockBackup.
-type MockBackupMockRecorder struct {
-	mock *MockBackup
+// MockbackupMockRecorder is the mock recorder for Mockbackup.
+type MockbackupMockRecorder struct {
+	mock *Mockbackup
 }
 
-// NewMockBackup creates a new mock instance.
-func NewMockBackup(ctrl *gomock.Controller) *MockBackup {
-	mock := &MockBackup{ctrl: ctrl}
-	mock.recorder = &MockBackupMockRecorder{mock}
+// NewMockbackup creates a new mock instance.
+func NewMockbackup(ctrl *gomock.Controller) *Mockbackup {
+	mock := &Mockbackup{ctrl: ctrl}
+	mock.recorder = &MockbackupMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockBackup) EXPECT() *MockBackupMockRecorder {
+func (m *Mockbackup) EXPECT() *MockbackupMockRecorder {
 	return m.recorder
 }
 
 // Create mocks base method.
-func (m *MockBackup) Create() error {
+func (m *Mockbackup) Create() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create")
 	ret0, _ := ret[0].(error)
@@ -77,54 +78,68 @@ func (m *MockBackup) Create() error {
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockBackupMockRecorder) Create() *gomock.Call {
+func (mr *MockbackupMockRecorder) Create() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockBackup)(nil).Create))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockbackup)(nil).Create))
 }
 
-// MockLogger is a mock of Logger interface.
-type MockLogger struct {
+// Mocklog is a mock of log interface.
+type Mocklog struct {
 	ctrl     *gomock.Controller
-	recorder *MockLoggerMockRecorder
+	recorder *MocklogMockRecorder
 }
 
-// MockLoggerMockRecorder is the mock recorder for MockLogger.
-type MockLoggerMockRecorder struct {
-	mock *MockLogger
+// MocklogMockRecorder is the mock recorder for Mocklog.
+type MocklogMockRecorder struct {
+	mock *Mocklog
 }
 
-// NewMockLogger creates a new mock instance.
-func NewMockLogger(ctrl *gomock.Controller) *MockLogger {
-	mock := &MockLogger{ctrl: ctrl}
-	mock.recorder = &MockLoggerMockRecorder{mock}
+// NewMocklog creates a new mock instance.
+func NewMocklog(ctrl *gomock.Controller) *Mocklog {
+	mock := &Mocklog{ctrl: ctrl}
+	mock.recorder = &MocklogMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockLogger) EXPECT() *MockLoggerMockRecorder {
+func (m *Mocklog) EXPECT() *MocklogMockRecorder {
 	return m.recorder
 }
 
 // Error mocks base method.
-func (m *MockLogger) Error(msg string, fields map[string]interface{}) {
+func (m *Mocklog) Error(msg string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Error", msg, fields)
+	m.ctrl.Call(m, "Error", msg)
 }
 
 // Error indicates an expected call of Error.
-func (mr *MockLoggerMockRecorder) Error(msg, fields interface{}) *gomock.Call {
+func (mr *MocklogMockRecorder) Error(msg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockLogger)(nil).Error), msg, fields)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*Mocklog)(nil).Error), msg)
 }
 
 // Info mocks base method.
-func (m *MockLogger) Info(msg string, fields map[string]interface{}) {
+func (m *Mocklog) Info(msg string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Info", msg, fields)
+	m.ctrl.Call(m, "Info", msg)
 }
 
 // Info indicates an expected call of Info.
-func (mr *MockLoggerMockRecorder) Info(msg, fields interface{}) *gomock.Call {
+func (mr *MocklogMockRecorder) Info(msg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLogger)(nil).Info), msg, fields)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*Mocklog)(nil).Info), msg)
+}
+
+// WithField mocks base method.
+func (m *Mocklog) WithField(key string, value interface{}) logger.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithField", key, value)
+	ret0, _ := ret[0].(logger.Logger)
+	return ret0
+}
+
+// WithField indicates an expected call of WithField.
+func (mr *MocklogMockRecorder) WithField(key, value interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithField", reflect.TypeOf((*Mocklog)(nil).WithField), key, value)
 }

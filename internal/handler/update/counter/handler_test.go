@@ -24,28 +24,28 @@ func Test_Handle(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		storage func(ctrl *gomock.Controller) *mock.MockStorage
-		backup  func(ctrl *gomock.Controller) *mock.MockBackup
+		storage func(ctrl *gomock.Controller) *mock.Mockstorage
+		backup  func(ctrl *gomock.Controller) *mock.Mockbackup
 		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
 		want    want
 	}{
 		{
 			name: "success",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
+				mockStorage := mock.NewMockstorage(ctrl)
 				mockStorage.EXPECT().AddCounter("test", int64(1)).Times(1)
 
 				return mockStorage
 			},
-			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
-				mockBackup := mock.NewMockBackup(ctrl)
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
 				mockBackup.EXPECT().Create().Times(1)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
 				return mockLog
 			},
 			fields: fields{
@@ -58,20 +58,20 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error empty name",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
+				mockStorage := mock.NewMockstorage(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
-			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
-				mockBackup := mock.NewMockBackup(ctrl)
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
 				mockBackup.EXPECT().Create().Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
 				return mockLog
 			},
 			fields: fields{
@@ -84,20 +84,21 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is float",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
+				mockStorage := mock.NewMockstorage(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
-			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
-				mockBackup := mock.NewMockBackup(ctrl)
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
 				mockBackup.EXPECT().Create().Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
 				return mockLog
 			},
 			fields: fields{
@@ -110,20 +111,21 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is string",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
+				mockStorage := mock.NewMockstorage(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
-			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
-				mockBackup := mock.NewMockBackup(ctrl)
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
 				mockBackup.EXPECT().Create().Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
 				return mockLog
 			},
 			fields: fields{

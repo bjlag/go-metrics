@@ -33,7 +33,8 @@ func TestHandler_Handle(t *testing.T) {
 				kind: "other",
 				log: func(ctrl *gomock.Controller) *mock.MockLogger {
 					mockLog := mock.NewMockLogger(ctrl)
-					mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+					mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+					mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
 					return mockLog
 				},
 			},
