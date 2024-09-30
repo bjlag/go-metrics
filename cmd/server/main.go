@@ -15,7 +15,6 @@ import (
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
-	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 	"github.com/bjlag/go-metrics/internal/util/renderer"
@@ -73,23 +72,14 @@ func run() error {
 	}
 
 	if restore {
-		data, err := fileStorage.Load()
+		err := restoreData(fileStorage, memStorage)
 		if err != nil {
 			log.Error("Failed to load backup data", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}
 
-		for _, value := range data {
-			switch value.MType {
-			case model.TypeCounter:
-				memStorage.AddCounter(value.ID, *value.Delta)
-			case model.TypeGauge:
-				memStorage.SetGauge(value.ID, *value.Value)
-			}
-		}
-
-		log.Info("Backup loaded", map[string]interface{}{})
+		log.Info("Backup loaded", nil)
 	}
 
 	var (
