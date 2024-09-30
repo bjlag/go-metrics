@@ -1,4 +1,4 @@
-package sync
+package async
 
 import (
 	"fmt"
@@ -17,6 +17,9 @@ type Backup struct {
 	fStorage *file.Storage
 	interval time.Duration
 	log      logger.Logger
+
+	ticker     *time.Ticker
+	needUpdate bool
 }
 
 func New(storage *memory.Storage, fStorage *file.Storage, interval time.Duration, log logger.Logger) *Backup {
@@ -28,32 +31,43 @@ func New(storage *memory.Storage, fStorage *file.Storage, interval time.Duration
 	}
 }
 
-func (b *Backup) Create() error {
-	if b.interval == 0 {
-		err := b.update()
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	ticker := time.NewTicker(b.interval)
-	defer ticker.Stop()
+func (b *Backup) Start() {
+	b.ticker = time.NewTicker(b.interval)
 
 	go func() {
-		for range ticker.C {
-			err := b.update()
-			if err != nil {
+		for range b.ticker.C {
+			if b.needUpdate {
+				err := b.update()
+				if err != nil {
+					b.log.Error("Failed to create backup", nil)
+				}
 
+				b.needUpdate = false
 			}
 		}
+	}()
+
+	b.log.Info("Async backup started", nil)
+}
+
+func (b *Backup) Stop() {
+	b.ticker.Stop()
+
+	err := b.update()
+	if err != nil {
+		b.log.Error("Failed to update backup while stopping", nil)
 	}
+
+	b.log.Info("Backup stopped", nil)
+}
+
+func (b *Backup) Create() error {
+	b.needUpdate = true
 
 	return nil
 }
 
-func (b *Backup) update() error  {
+func (b *Backup) update() error {
 	counters := b.storage.GetAllCounters()
 	gauges := b.storage.GetAllGauges()
 

@@ -43,9 +43,17 @@ func (s *Storage) Save(data []Metric) error {
 }
 
 func (s *Storage) Load() ([]Metric, error) {
+	if _, err := os.Stat(s.path); os.IsNotExist(err) {
+		return nil, nil
+	}
+
 	data, err := os.ReadFile(s.path)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+
+	if len(data) == 0 {
+		return nil, nil
 	}
 
 	var metrics []Metric
