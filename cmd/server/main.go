@@ -1,10 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	nativLog "log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"golang.org/x/sync/errgroup"
+
+	"github.com/bjlag/go-metrics/internal/backup"
+	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
@@ -24,6 +32,16 @@ func main() {
 }
 
 func run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+		<-c
+		cancel()
+	}()
+
 	parseFlags()
 	parseEnvs()
 
@@ -74,7 +92,41 @@ func run() error {
 		log.Info("Backup loaded", map[string]interface{}{})
 	}
 
-	backupCreator := syncBackup.New(memStorage, fileStorage, log)
+	var (
+		b  backup.Creator
+		ba *asyncBackup.Backup
+	)
 
-	return http.ListenAndServe(addr.String(), initRouter(htmlRenderer, memStorage, backupCreator, log))
+	if storeInterval <= 0 {
+		b = syncBackup.New(memStorage, fileStorage, log)
+	} else {
+		ba = asyncBackup.New(memStorage, fileStorage, storeInterval, log)
+		ba.Start()
+		b = ba
+	}
+
+	httpServer := &http.Server{
+		Addr:    addr.String(),
+		Handler: initRouter(htmlRenderer, memStorage, b, log),
+	}
+
+	g, gCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return httpServer.ListenAndServe()
+	})
+
+	g.Go(func() error {
+		<-gCtx.Done()
+
+		log.Info("Graceful shutting down server", nil)
+		ba.Stop()
+		return httpServer.Shutdown(context.Background())
+	})
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
