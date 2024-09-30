@@ -1,18 +1,21 @@
 package gauge
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 )
 
 type Handler struct {
 	storage Storage
+	backup  Backup
 	log     Logger
 }
 
-func NewHandler(storage Storage, logger Logger) *Handler {
+func NewHandler(storage Storage, backup Backup, logger Logger) *Handler {
 	return &Handler{
 		storage: storage,
+		backup:  backup,
 		log:     logger,
 	}
 }
@@ -35,4 +38,9 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.storage.SetGauge(nameMetric, value)
+
+	err = h.backup.Create()
+	if err != nil {
+		h.log.Error(fmt.Sprintf("Failed to backup data: %s", err.Error()), nil)
+	}
 }
