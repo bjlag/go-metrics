@@ -45,6 +45,43 @@ func (mr *MockStorageMockRecorder) SetGauge(name, value interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*MockStorage)(nil).SetGauge), name, value)
 }
 
+// MockBackup is a mock of Backup interface.
+type MockBackup struct {
+	ctrl     *gomock.Controller
+	recorder *MockBackupMockRecorder
+}
+
+// MockBackupMockRecorder is the mock recorder for MockBackup.
+type MockBackupMockRecorder struct {
+	mock *MockBackup
+}
+
+// NewMockBackup creates a new mock instance.
+func NewMockBackup(ctrl *gomock.Controller) *MockBackup {
+	mock := &MockBackup{ctrl: ctrl}
+	mock.recorder = &MockBackupMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBackup) EXPECT() *MockBackupMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockBackup) Create() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockBackupMockRecorder) Create() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockBackup)(nil).Create))
+}
+
 // MockLogger is a mock of Logger interface.
 type MockLogger struct {
 	ctrl     *gomock.Controller

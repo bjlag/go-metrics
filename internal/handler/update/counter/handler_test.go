@@ -25,6 +25,7 @@ func Test_Handle(t *testing.T) {
 	tests := []struct {
 		name    string
 		storage func(ctrl *gomock.Controller) *mock.MockStorage
+		backup  func(ctrl *gomock.Controller) *mock.MockBackup
 		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
 		want    want
@@ -36,6 +37,11 @@ func Test_Handle(t *testing.T) {
 				mockStorage.EXPECT().AddCounter("test", int64(1)).Times(1)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
+				mockBackup := mock.NewMockBackup(ctrl)
+				mockBackup.EXPECT().Create().Times(1)
+				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
@@ -58,6 +64,11 @@ func Test_Handle(t *testing.T) {
 
 				return mockStorage
 			},
+			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
+				mockBackup := mock.NewMockBackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
 				mockLog.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
@@ -79,6 +90,11 @@ func Test_Handle(t *testing.T) {
 
 				return mockStorage
 			},
+			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
+				mockBackup := mock.NewMockBackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
 				mockLog.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
@@ -99,6 +115,11 @@ func Test_Handle(t *testing.T) {
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.MockBackup {
+				mockBackup := mock.NewMockBackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
@@ -125,7 +146,7 @@ func Test_Handle(t *testing.T) {
 			request.SetPathValue("name", tt.fields.name)
 			request.SetPathValue("value", tt.fields.value)
 
-			h := http.HandlerFunc(counter.NewHandler(tt.storage(ctrl), tt.log(ctrl)).Handle)
+			h := http.HandlerFunc(counter.NewHandler(tt.storage(ctrl), tt.backup(ctrl), tt.log(ctrl)).Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()
