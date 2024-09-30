@@ -4,7 +4,7 @@ package unknown
 
 import "github.com/bjlag/go-metrics/internal/logger"
 
-type Logger interface {
+type log interface {
 	WithField(key string, value interface{}) logger.Logger
 	Info(msg string)
 }

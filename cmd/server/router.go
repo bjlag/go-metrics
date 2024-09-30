@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/bjlag/go-metrics/internal/backup"
+	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/bjlag/go-metrics/internal/handler/list"
@@ -16,7 +17,6 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/storage"
-	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
 func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup backup.Creator, log logger.Logger) *chi.Mux {

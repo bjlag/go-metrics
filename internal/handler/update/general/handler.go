@@ -10,16 +10,16 @@ import (
 )
 
 type Handler struct {
-	storage Storage
-	backup  Backup
-	log     Logger
+	repo   repo
+	backup backup
+	log    log
 }
 
-func NewHandler(storage Storage, backup Backup, logger Logger) *Handler {
+func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
-		storage: storage,
-		backup:  backup,
-		log:     logger,
+		repo:   repo,
+		backup: backup,
+		log:    log,
 	}
 }
 
@@ -93,9 +93,9 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) saveMetric(request model.UpdateIn) error {
 	switch request.MType {
 	case model.TypeCounter:
-		h.storage.AddCounter(request.ID, *request.Delta)
+		h.repo.AddCounter(request.ID, *request.Delta)
 	case model.TypeGauge:
-		h.storage.SetGauge(request.ID, *request.Value)
+		h.repo.SetGauge(request.ID, *request.Value)
 	default:
 		return fmt.Errorf("unknown metric type: %s", request.MType)
 	}
@@ -110,7 +110,7 @@ func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
 	}
 
 	if request.IsGauge() {
-		value, err := h.storage.GetGauge(request.ID)
+		value, err := h.repo.GetGauge(request.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +118,7 @@ func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
 	}
 
 	if request.IsCounter() {
-		value, err := h.storage.GetCounter(request.ID)
+		value, err := h.repo.GetCounter(request.ID)
 		if err != nil {
 			return nil, err
 		}

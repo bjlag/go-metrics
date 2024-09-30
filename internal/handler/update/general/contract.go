@@ -7,7 +7,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-type Storage interface {
+type repo interface {
 	SetGauge(name string, value float64)
 	AddCounter(name string, value int64)
 	GetGauge(name string) (float64, error)
@@ -16,11 +16,11 @@ type Storage interface {
 	GetAllCounters() storage.Counters
 }
 
-type Backup interface {
+type backup interface {
 	Create() error
 }
 
-type Logger interface {
+type log interface {
 	WithField(key string, value interface{}) logger.Logger
 	Error(msg string)
 	Info(msg string)

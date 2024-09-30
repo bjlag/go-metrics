@@ -6,16 +6,16 @@ import (
 )
 
 type Handler struct {
-	storage storage
-	backup  backup
-	log     log
+	repo   repo
+	backup backup
+	log    log
 }
 
-func NewHandler(storage storage, backup backup, logger log) *Handler {
+func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
-		storage: storage,
-		backup:  backup,
-		log:     logger,
+		repo:   repo,
+		backup: backup,
+		log:    log,
 	}
 }
 
@@ -37,7 +37,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.storage.AddCounter(nameMetric, value)
+	h.repo.AddCounter(nameMetric, value)
 
 	err = h.backup.Create()
 	if err != nil {

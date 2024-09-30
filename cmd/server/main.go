@@ -15,9 +15,9 @@ import (
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
-	"github.com/bjlag/go-metrics/internal/util/renderer"
 )
 
 const (
@@ -44,7 +44,7 @@ func run() error {
 	parseFlags()
 	parseEnvs()
 
-	log, err := logger.NewZapLogger(logLevel)
+	log, err := logger.NewZapLog(logLevel)
 	if err != nil {
 		return err
 	}

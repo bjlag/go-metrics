@@ -9,21 +9,21 @@ import (
 )
 
 type Handler struct {
-	storage Storage
-	log     Logger
+	repo repo
+	log  log
 }
 
-func NewHandler(storage Storage, logger Logger) *Handler {
+func NewHandler(repo repo, log log) *Handler {
 	return &Handler{
-		storage: storage,
-		log:     logger,
+		repo: repo,
+		log:  log,
 	}
 }
 
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	storedValue, err := h.storage.GetCounter(name)
+	storedValue, err := h.repo.GetCounter(name)
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {

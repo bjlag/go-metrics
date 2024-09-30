@@ -11,14 +11,14 @@ import (
 )
 
 type Handler struct {
-	storage Storage
-	log     Logger
+	repo repo
+	log  log
 }
 
-func NewHandler(storage Storage, logger Logger) *Handler {
+func NewHandler(repo repo, log log) *Handler {
 	return &Handler{
-		storage: storage,
-		log:     logger,
+		repo: repo,
+		log:  log,
 	}
 }
 
@@ -88,7 +88,7 @@ func (h Handler) getResponseData(request model.ValueIn) ([]byte, error) {
 	}
 
 	if request.IsGauge() {
-		value, err := h.storage.GetGauge(request.ID)
+		value, err := h.repo.GetGauge(request.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +96,7 @@ func (h Handler) getResponseData(request model.ValueIn) ([]byte, error) {
 	}
 
 	if request.IsCounter() {
-		value, err := h.storage.GetCounter(request.ID)
+		value, err := h.repo.GetCounter(request.ID)
 		if err != nil {
 			return nil, err
 		}

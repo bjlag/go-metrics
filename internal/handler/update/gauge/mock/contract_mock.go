@@ -11,39 +11,39 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// Mockstorage is a mock of storage interface.
-type Mockstorage struct {
+// Mockrepo is a mock of repo interface.
+type Mockrepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockstorageMockRecorder
+	recorder *MockrepoMockRecorder
 }
 
-// MockstorageMockRecorder is the mock recorder for Mockstorage.
-type MockstorageMockRecorder struct {
-	mock *Mockstorage
+// MockrepoMockRecorder is the mock recorder for Mockrepo.
+type MockrepoMockRecorder struct {
+	mock *Mockrepo
 }
 
-// NewMockstorage creates a new mock instance.
-func NewMockstorage(ctrl *gomock.Controller) *Mockstorage {
-	mock := &Mockstorage{ctrl: ctrl}
-	mock.recorder = &MockstorageMockRecorder{mock}
+// NewMockrepo creates a new mock instance.
+func NewMockrepo(ctrl *gomock.Controller) *Mockrepo {
+	mock := &Mockrepo{ctrl: ctrl}
+	mock.recorder = &MockrepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mockstorage) EXPECT() *MockstorageMockRecorder {
+func (m *Mockrepo) EXPECT() *MockrepoMockRecorder {
 	return m.recorder
 }
 
 // SetGauge mocks base method.
-func (m *Mockstorage) SetGauge(name string, value float64) {
+func (m *Mockrepo) SetGauge(name string, value float64) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetGauge", name, value)
 }
 
 // SetGauge indicates an expected call of SetGauge.
-func (mr *MockstorageMockRecorder) SetGauge(name, value interface{}) *gomock.Call {
+func (mr *MockrepoMockRecorder) SetGauge(name, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*Mockstorage)(nil).SetGauge), name, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*Mockrepo)(nil).SetGauge), name, value)
 }
 
 // Mockbackup is a mock of backup interface.

@@ -37,7 +37,7 @@ func run() error {
 	parseFlags()
 	parseEnvs()
 
-	log, err := logger.NewZapLogger(logLevel)
+	log, err := logger.NewZapLog(logLevel)
 	if err != nil {
 		return err
 	}

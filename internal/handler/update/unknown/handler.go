@@ -8,9 +8,9 @@ type Handler struct {
 	log log
 }
 
-func NewHandler(logger log) *Handler {
+func NewHandler(log log) *Handler {
 	return &Handler{
-		log: logger,
+		log: log,
 	}
 }
 

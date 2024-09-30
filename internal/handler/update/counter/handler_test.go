@@ -24,7 +24,7 @@ func Test_Handle(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		storage func(ctrl *gomock.Controller) *mock.Mockstorage
+		storage func(ctrl *gomock.Controller) *mock.Mockrepo
 		backup  func(ctrl *gomock.Controller) *mock.Mockbackup
 		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
@@ -32,8 +32,8 @@ func Test_Handle(t *testing.T) {
 	}{
 		{
 			name: "success",
-			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
-				mockStorage := mock.NewMockstorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter("test", int64(1)).Times(1)
 
 				return mockStorage
@@ -58,8 +58,8 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error empty name",
-			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
-				mockStorage := mock.NewMockstorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
@@ -84,8 +84,8 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is float",
-			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
-				mockStorage := mock.NewMockstorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
@@ -111,8 +111,8 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is string",
-			storage: func(ctrl *gomock.Controller) *mock.Mockstorage {
-				mockStorage := mock.NewMockstorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage

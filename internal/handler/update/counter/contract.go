@@ -5,7 +5,7 @@ package counter
 
 import "github.com/bjlag/go-metrics/internal/logger"
 
-type storage interface {
+type repo interface {
 	AddCounter(name string, value int64)
 }
 

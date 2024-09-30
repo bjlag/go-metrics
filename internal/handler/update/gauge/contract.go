@@ -5,7 +5,7 @@ package gauge
 
 import internalLogger "github.com/bjlag/go-metrics/internal/logger"
 
-type storage interface {
+type repo interface {
 	SetGauge(name string, value float64)
 }
 

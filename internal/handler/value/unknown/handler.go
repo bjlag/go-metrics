@@ -5,12 +5,12 @@ import (
 )
 
 type Handler struct {
-	log Logger
+	log log
 }
 
-func NewHandler(logger Logger) *Handler {
+func NewHandler(log log) *Handler {
 	return &Handler{
-		log: logger,
+		log: log,
 	}
 }
 

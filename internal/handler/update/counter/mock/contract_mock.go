@@ -11,39 +11,39 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// Mockstorage is a mock of storage interface.
-type Mockstorage struct {
+// Mockrepo is a mock of repo interface.
+type Mockrepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockstorageMockRecorder
+	recorder *MockrepoMockRecorder
 }
 
-// MockstorageMockRecorder is the mock recorder for Mockstorage.
-type MockstorageMockRecorder struct {
-	mock *Mockstorage
+// MockrepoMockRecorder is the mock recorder for Mockrepo.
+type MockrepoMockRecorder struct {
+	mock *Mockrepo
 }
 
-// NewMockstorage creates a new mock instance.
-func NewMockstorage(ctrl *gomock.Controller) *Mockstorage {
-	mock := &Mockstorage{ctrl: ctrl}
-	mock.recorder = &MockstorageMockRecorder{mock}
+// NewMockrepo creates a new mock instance.
+func NewMockrepo(ctrl *gomock.Controller) *Mockrepo {
+	mock := &Mockrepo{ctrl: ctrl}
+	mock.recorder = &MockrepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mockstorage) EXPECT() *MockstorageMockRecorder {
+func (m *Mockrepo) EXPECT() *MockrepoMockRecorder {
 	return m.recorder
 }
 
 // AddCounter mocks base method.
-func (m *Mockstorage) AddCounter(name string, value int64) {
+func (m *Mockrepo) AddCounter(name string, value int64) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AddCounter", name, value)
 }
 
 // AddCounter indicates an expected call of AddCounter.
-func (mr *MockstorageMockRecorder) AddCounter(name, value interface{}) *gomock.Call {
+func (mr *MockrepoMockRecorder) AddCounter(name, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCounter", reflect.TypeOf((*Mockstorage)(nil).AddCounter), name, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCounter", reflect.TypeOf((*Mockrepo)(nil).AddCounter), name, value)
 }
 
 // Mockbackup is a mock of backup interface.
