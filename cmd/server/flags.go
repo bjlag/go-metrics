@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type netAddress struct {
@@ -31,33 +32,82 @@ func (o *netAddress) Set(value string) error {
 }
 
 const (
-	defaultHost = "localhost"
-	defaultPort = 8080
+	defaultHost            = "localhost"
+	defaultPort            = 8080
+	defaultLogLevel        = "info"
+	defaultStoreInterval   = 300
+	defaultFileStoragePath = "data/metrics.json"
+	defaultRestore         = true
 
-	envAddress = "ADDRESS"
+	envAddress         = "ADDRESS"
+	envLogLevel        = "LOG_LEVEL"
+	envStoreInterval   = "STORE_INTERVAL"
+	envFileStoragePath = "FILE_STORAGE_PATH"
+	envRestore         = "RESTORE"
 )
 
-var addr = &netAddress{
-	host: defaultHost,
-	port: defaultPort,
-}
+var (
+	addr = &netAddress{
+		host: defaultHost,
+		port: defaultPort,
+	}
+
+	logLevel        string
+	storeInterval   = defaultStoreInterval * time.Second
+	fileStoragePath string
+	restore         bool
+)
 
 func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
+	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
+	flag.Func("i", "Store interval in seconds", func(s string) error {
+		var err error
+
+		storeInterval, err = stringToDurationInSeconds(s)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
+	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
 	flag.Parse()
 }
 
 func parseEnvs() {
-	if address := os.Getenv(envAddress); address != "" {
-		host, port, err := parseHostAndPort(address)
+	if envAddressValue := os.Getenv(envAddress); envAddressValue != "" {
+		host, port, err := parseHostAndPort(envAddressValue)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		addr.host = host
 		addr.port = port
+	}
+
+	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
+		logLevel = envLogLevelValue
+	}
+
+	if envStoreIntervalValue := os.Getenv(envStoreInterval); envStoreIntervalValue != "" {
+		var err error
+
+		storeInterval, err = stringToDurationInSeconds(envStoreIntervalValue)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if envFileStoragePathValue := os.Getenv(envFileStoragePath); envFileStoragePathValue != "" {
+		fileStoragePath = envFileStoragePathValue
+	}
+
+	if envRestoreValue := os.Getenv(envRestore); envRestoreValue != "" {
+		restore = true
 	}
 }
 
@@ -73,4 +123,13 @@ func parseHostAndPort(s string) (string, int, error) {
 	}
 
 	return values[0], port, nil
+}
+
+func stringToDurationInSeconds(s string) (time.Duration, error) {
+	val, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(val) * time.Second, nil
 }

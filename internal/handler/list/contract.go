@@ -5,14 +5,20 @@ package list
 import (
 	"io"
 
+	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-type Renderer interface {
+type renderer interface {
 	Render(w io.Writer, name string, data interface{}) error
 }
 
-type Storage interface {
+type repo interface {
 	GetAllGauges() storage.Gauges
 	GetAllCounters() storage.Counters
+}
+
+type log interface {
+	WithField(key string, value interface{}) logger.Logger
+	Error(msg string)
 }

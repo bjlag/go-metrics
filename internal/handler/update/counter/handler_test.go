@@ -24,17 +24,29 @@ func Test_Handle(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		storage func(ctrl *gomock.Controller) *mock.MockStorage
+		storage func(ctrl *gomock.Controller) *mock.Mockrepo
+		backup  func(ctrl *gomock.Controller) *mock.Mockbackup
+		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
 		want    want
 	}{
 		{
 			name: "success",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter("test", int64(1)).Times(1)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(1)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -46,11 +58,21 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error empty name",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "",
@@ -62,11 +84,22 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is float",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -78,11 +111,22 @@ func Test_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is string",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -104,7 +148,7 @@ func Test_Handle(t *testing.T) {
 			request.SetPathValue("name", tt.fields.name)
 			request.SetPathValue("value", tt.fields.value)
 
-			h := http.HandlerFunc(counter.NewHandler(tt.storage(ctrl)).Handle)
+			h := http.HandlerFunc(counter.NewHandler(tt.storage(ctrl), tt.backup(ctrl), tt.log(ctrl)).Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()

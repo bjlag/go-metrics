@@ -1,37 +1,48 @@
 package counter
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
-)
 
-const (
-	metricNotFoundMsgErr = "Counter metric '%s' not found"
-	writeBodyMsgErr      = "Error while writing body"
+	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 type Handler struct {
-	storage Storage
+	repo repo
+	log  log
 }
 
-func NewHandler(storage Storage) *Handler {
+func NewHandler(repo repo, log log) *Handler {
 	return &Handler{
-		storage: storage,
+		repo: repo,
+		log:  log,
 	}
 }
 
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	storedValue, err := h.storage.GetCounter(name)
+	storedValue, err := h.repo.GetCounter(name)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(metricNotFoundMsgErr, name), http.StatusNotFound)
+		var metricNotFoundError *memory.MetricNotFoundError
+		if errors.As(err, &metricNotFoundError) {
+			h.log.WithField("name", name).
+				Info("Counter metric not found")
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		h.log.WithField("error", err.Error()).
+			Error("Failed to get counter value")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write([]byte(strconv.FormatInt(storedValue, 10)))
 	if err != nil {
-		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
+		h.log.WithField("error", err.Error()).
+			Error("Failed to write response")
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }

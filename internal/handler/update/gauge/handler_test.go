@@ -24,17 +24,29 @@ func TestHandler_Handle(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		storage func(ctrl *gomock.Controller) *mock.MockStorage
+		storage func(ctrl *gomock.Controller) *mock.Mockrepo
+		backup  func(ctrl *gomock.Controller) *mock.Mockbackup
+		log     func(ctrl *gomock.Controller) *mock.MockLogger
 		fields  fields
 		want    want
 	}{
 		{
 			name: "success value is float",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().SetGauge("test", 1.1).Times(1)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(1)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -46,11 +58,21 @@ func TestHandler_Handle(t *testing.T) {
 		},
 		{
 			name: "success value is int",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().SetGauge("test", float64(1)).Times(1)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(1)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -62,11 +84,21 @@ func TestHandler_Handle(t *testing.T) {
 		},
 		{
 			name: "error empty name",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "",
@@ -78,11 +110,22 @@ func TestHandler_Handle(t *testing.T) {
 		},
 		{
 			name: "error invalid value is string",
-			storage: func(ctrl *gomock.Controller) *mock.MockStorage {
-				mockStorage := mock.NewMockStorage(ctrl)
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
 				mockStorage.EXPECT().SetGauge(gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create().Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog)
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
+				return mockLog
 			},
 			fields: fields{
 				name:  "test",
@@ -104,7 +147,7 @@ func TestHandler_Handle(t *testing.T) {
 			request.SetPathValue("name", tt.fields.name)
 			request.SetPathValue("value", tt.fields.value)
 
-			h := http.HandlerFunc(gauge.NewHandler(tt.storage(ctrl)).Handle)
+			h := http.HandlerFunc(gauge.NewHandler(tt.storage(ctrl), tt.backup(ctrl), tt.log(ctrl)).Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()

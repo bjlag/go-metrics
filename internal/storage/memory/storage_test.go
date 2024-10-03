@@ -8,7 +8,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
-func TestMemStorage_Counter(t *testing.T) {
+func TestStorage_Counter(t *testing.T) {
 	type args struct {
 		name string
 	}
@@ -37,7 +37,7 @@ func TestMemStorage_Counter(t *testing.T) {
 		},
 	}
 
-	s := memory.NewMemStorage()
+	s := memory.NewStorage()
 	for _, value := range []int64{1, 2, 3, 4, 5} {
 		s.AddCounter("name", value)
 	}
@@ -56,7 +56,7 @@ func TestMemStorage_Counter(t *testing.T) {
 	}
 }
 
-func TestMemStorage_SetGauge(t *testing.T) {
+func TestStorage_SetGauge(t *testing.T) {
 	type args struct {
 		name string
 	}
@@ -85,7 +85,7 @@ func TestMemStorage_SetGauge(t *testing.T) {
 		},
 	}
 
-	s := memory.NewMemStorage()
+	s := memory.NewStorage()
 
 	for _, value := range []float64{1, 2.2, 3.3, 0, 5} {
 		s.SetGauge("name", value)

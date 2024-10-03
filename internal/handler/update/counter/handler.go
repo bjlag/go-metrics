@@ -5,18 +5,17 @@ import (
 	"strconv"
 )
 
-const (
-	emptyNameMetricMsgErr    = "Metric name not specified"
-	invalidMetricValueMsgErr = "Invalid metric value"
-)
-
 type Handler struct {
-	storage Storage
+	repo   repo
+	backup backup
+	log    log
 }
 
-func NewHandler(storage Storage) *Handler {
+func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
-		storage: storage,
+		repo:   repo,
+		backup: backup,
+		log:    log,
 	}
 }
 
@@ -25,15 +24,24 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	valueMetric := r.PathValue("value")
 
 	if nameMetric == "" {
-		http.Error(w, emptyNameMetricMsgErr, http.StatusNotFound)
+		h.log.Info("Metric name not specified")
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
 	value, err := strconv.ParseInt(valueMetric, 10, 64)
 	if err != nil {
-		http.Error(w, invalidMetricValueMsgErr, http.StatusBadRequest)
+		h.log.WithField("error", err.Error()).
+			Error("Invalid metric value")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
-	h.storage.AddCounter(nameMetric, value)
+	h.repo.AddCounter(nameMetric, value)
+
+	err = h.backup.Create()
+	if err != nil {
+		h.log.WithField("error", err.Error()).
+			Error("Failed to backup data")
+	}
 }

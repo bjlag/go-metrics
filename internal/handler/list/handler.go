@@ -11,14 +11,16 @@ const (
 )
 
 type Handler struct {
-	renderer Renderer
-	storage  Storage
+	renderer renderer
+	repo     repo
+	log      log
 }
 
-func NewHandler(renderer Renderer, storage Storage) *Handler {
+func NewHandler(renderer renderer, repo repo, log log) *Handler {
 	return &Handler{
 		renderer: renderer,
-		storage:  storage,
+		repo:     repo,
+		log:      log,
 	}
 }
 
@@ -29,12 +31,14 @@ func (h Handler) Handle(w http.ResponseWriter, _ *http.Request) {
 		Counters storage.Counters
 	}{
 		Title:    "Список метрик",
-		Gauges:   h.storage.GetAllGauges(),
-		Counters: h.storage.GetAllCounters(),
+		Gauges:   h.repo.GetAllGauges(),
+		Counters: h.repo.GetAllCounters(),
 	}
 
 	err := h.renderer.Render(w, "list.html", data)
 	if err != nil {
+		h.log.WithField("err", err.Error()).
+			Error("failed to render list.html")
 		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
 	}
 }

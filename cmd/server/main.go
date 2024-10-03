@@ -1,54 +1,117 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
+	nativLog "log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/go-chi/chi/v5"
+	"golang.org/x/sync/errgroup"
 
-	"github.com/bjlag/go-metrics/internal/handler/list"
-	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
-	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
-	updateUnknown "github.com/bjlag/go-metrics/internal/handler/update/unknown"
-	valueCaunter "github.com/bjlag/go-metrics/internal/handler/value/counter"
-	valueGauge "github.com/bjlag/go-metrics/internal/handler/value/gauge"
-	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
-	"github.com/bjlag/go-metrics/internal/middleware"
-	storage "github.com/bjlag/go-metrics/internal/storage/memory"
-	"github.com/bjlag/go-metrics/internal/util/renderer"
+	"github.com/bjlag/go-metrics/internal/backup"
+	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
+	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
+	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/storage/file"
+	"github.com/bjlag/go-metrics/internal/storage/memory"
+)
+
+const (
+	tmplPath = "web/tmpl/list.html"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalln(err)
+		nativLog.Fatalln(err)
 	}
 }
 
 func run() error {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+		<-c
+		cancel()
+	}()
+
 	parseFlags()
 	parseEnvs()
 
-	memStorage := storage.NewMemStorage()
-	htmlRenderer := renderer.NewHTMLRenderer("web/tmpl/list.html")
+	log, err := logger.NewZapLog(logLevel)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = log.Close()
+	}()
 
-	router := chi.NewRouter()
+	log.WithField("address", addr.String()).Info("started server")
+	log.Info(fmt.Sprintf("log level '%s'", logLevel))
+	log.Info(fmt.Sprintf("store interval %s", storeInterval))
+	log.Info(fmt.Sprintf("file storage path '%s'", fileStoragePath))
+	log.Info(fmt.Sprintf("restore metrics %v", restore))
 
-	router.Use(
-		middleware.LogRequestMiddleware,
-		middleware.FinishRequestMiddleware,
+	memStorage := memory.NewStorage()
+	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
+
+	fileStorage, err := file.NewStorage(fileStoragePath)
+	if err != nil {
+		log.WithField("error", err.Error()).Error("failed to create file storage")
+		return err
+	}
+
+	if restore {
+		err := restoreData(fileStorage, memStorage)
+		if err != nil {
+			log.WithField("error", err.Error()).
+				Error("failed to load backup data")
+		}
+
+		log.Info("backup loaded")
+	}
+
+	var (
+		b  backup.Creator
+		ba *asyncBackup.Backup
 	)
 
-	router.Get("/", list.NewHandler(htmlRenderer, memStorage).Handle)
+	if storeInterval <= 0 {
+		b = syncBackup.New(memStorage, fileStorage, log)
+	} else {
+		ba = asyncBackup.New(memStorage, fileStorage, storeInterval, log)
+		ba.Start()
+		b = ba
+	}
 
-	router.Post("/update/gauge/{name}/{value}", updateGauge.NewHandler(memStorage).Handle)
-	router.Post("/update/counter/{name}/{value}", updateCounter.NewHandler(memStorage).Handle)
-	router.Post("/update/{kind}/{name}/{value}", updateUnknown.NewHandler().Handle)
+	httpServer := &http.Server{
+		Addr:    addr.String(),
+		Handler: initRouter(htmlRenderer, memStorage, b, log),
+	}
 
-	router.Get("/value/gauge/{name}", valueGauge.NewHandler(memStorage).Handle)
-	router.Get("/value/counter/{name}", valueCaunter.NewHandler(memStorage).Handle)
-	router.Get("/value/{kind}/{name}", valueUnknown.NewHandler().Handle)
+	g, gCtx := errgroup.WithContext(ctx)
 
-	log.Printf("Listening on %s\n", addr.String())
+	g.Go(func() error {
+		return httpServer.ListenAndServe()
+	})
 
-	return http.ListenAndServe(addr.String(), router)
+	g.Go(func() error {
+		<-gCtx.Done()
+
+		log.Info("graceful shutting down server")
+		ba.Stop()
+		return httpServer.Shutdown(context.Background())
+	})
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }

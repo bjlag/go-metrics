@@ -10,7 +10,6 @@ import (
 )
 
 func TestAllowPostMethodMiddleware(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		method         string
@@ -61,21 +60,6 @@ func TestAllowPostMethodMiddleware(t *testing.T) {
 		})
 
 	}
-}
-
-func TestFinishRequestMiddleware(t *testing.T) {
-	w := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/", nil)
-
-	h := middleware.FinishRequestMiddleware(http.HandlerFunc(handler))
-	h.ServeHTTP(w, request)
-
-	response := w.Result()
-	defer func() {
-		_ = response.Body.Close()
-	}()
-
-	assert.Equal(t, "text/plain; charset=utf-8", response.Header.Get("Content-Type"))
 }
 
 func handler(_ http.ResponseWriter, _ *http.Request) {}
