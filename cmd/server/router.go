@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/bjlag/go-metrics/internal/backup"
-	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/go-chi/chi/v5"
+	"github.com/jmoiron/sqlx"
 
+	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
+	"github.com/bjlag/go-metrics/internal/handler/ping"
 	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
 	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
 	updateGaneral "github.com/bjlag/go-metrics/internal/handler/update/general"
@@ -16,10 +17,11 @@ import (
 	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
+	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup backup.Creator, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -50,6 +52,10 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
+	})
+
+	r.Route("/ping", func(r chi.Router) {
+		r.Get("/", ping.NewHandler(db, log).Handle)
 	})
 
 	return r

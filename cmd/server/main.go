@@ -52,7 +52,7 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	_ = mustInitDB(log)
+	db := mustInitDB(log)
 
 	log.WithField("address", addr.String()).Info("started server")
 	log.Info(fmt.Sprintf("log level '%s'", logLevel))
@@ -94,7 +94,7 @@ func run() error {
 
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, memStorage, b, log),
+		Handler: initRouter(htmlRenderer, memStorage, db, b, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
