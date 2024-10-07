@@ -12,7 +12,7 @@ import (
 const fail = 1
 
 func mustInitDB(log logger.Logger) *sqlx.DB {
-	db, err := sqlx.Connect("pgx", databaseDSN+"?sslmode=disable")
+	db, err := sqlx.Connect("pgx", databaseDSN)
 	if err != nil {
 		log.WithError(err).Error("Unable to connect to database")
 		os.Exit(fail)

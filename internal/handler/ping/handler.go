@@ -18,7 +18,7 @@ func NewHandler(dsn string, log log) *Handler {
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, _ *http.Request) {
-	db, err := sqlx.Connect("pgx", h.dsn+"?sslmode=disable")
+	db, err := sqlx.Connect("pgx", h.dsn)
 	if err != nil {
 		h.log.WithError(err).Error("Unable to connect to database")
 		w.WriteHeader(http.StatusInternalServerError)
