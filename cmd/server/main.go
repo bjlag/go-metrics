@@ -52,6 +52,8 @@ func run() error {
 		_ = log.Close()
 	}()
 
+	_ = mustInitDB(log)
+
 	log.WithField("address", addr.String()).Info("started server")
 	log.Info(fmt.Sprintf("log level '%s'", logLevel))
 	log.Info(fmt.Sprintf("store interval %s", storeInterval))

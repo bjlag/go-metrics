@@ -34,12 +34,14 @@ func (o *netAddress) Set(value string) error {
 const (
 	defaultHost            = "localhost"
 	defaultPort            = 8080
+	defaultDatabaseDSN     = "postgresql://postgres:local@localhost:5432/metrics"
 	defaultLogLevel        = "info"
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "data/metrics.json"
 	defaultRestore         = true
 
 	envAddress         = "ADDRESS"
+	envDatabaseDSN     = "DATABASE_DSN"
 	envLogLevel        = "LOG_LEVEL"
 	envStoreInterval   = "STORE_INTERVAL"
 	envFileStoragePath = "FILE_STORAGE_PATH"
@@ -52,6 +54,7 @@ var (
 		port: defaultPort,
 	}
 
+	databaseDSN     string
 	logLevel        string
 	storeInterval   = defaultStoreInterval * time.Second
 	fileStoragePath string
@@ -62,6 +65,7 @@ func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
+	flag.StringVar(&databaseDSN, "d", defaultDatabaseDSN, "Database DSN")
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
 	flag.Func("i", "Store interval in seconds", func(s string) error {
 		var err error
@@ -87,6 +91,10 @@ func parseEnvs() {
 
 		addr.host = host
 		addr.port = port
+	}
+
+	if envDatabaseDSNValue := os.Getenv(envDatabaseDSN); envDatabaseDSNValue != "" {
+		databaseDSN = envDatabaseDSNValue
 	}
 
 	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
