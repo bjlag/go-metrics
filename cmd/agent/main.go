@@ -18,6 +18,9 @@ import (
 )
 
 func main() {
+	parseFlags()
+	parseEnvs()
+
 	if err := run(); err != nil {
 		logNativ.Fatalln(err)
 	}
@@ -33,9 +36,6 @@ func run() error {
 		<-c
 		cancel()
 	}()
-
-	parseFlags()
-	parseEnvs()
 
 	log, err := logger.NewZapLog(logLevel)
 	if err != nil {
