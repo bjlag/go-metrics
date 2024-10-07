@@ -18,6 +18,7 @@ func NewZapLog(level string) (*ZapLog, error) {
 	cfg := zap.NewDevelopmentConfig()
 	cfg.Level = lvl
 	cfg.DisableCaller = true
+	cfg.DisableStacktrace = true
 	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
 	logger, err := cfg.Build()
@@ -41,6 +42,12 @@ func (l *ZapLog) Close() error {
 func (l *ZapLog) WithField(key string, value interface{}) Logger {
 	return &ZapLog{
 		logger: l.logger.With(zap.Any(key, value)),
+	}
+}
+
+func (l *ZapLog) WithError(err error) Logger {
+	return &ZapLog{
+		logger: l.logger.With(zap.Any("error", err.Error())),
 	}
 }
 

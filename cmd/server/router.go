@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/bjlag/go-metrics/internal/backup"
-	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
+	"github.com/bjlag/go-metrics/internal/handler/ping"
 	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
 	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
 	updateGaneral "github.com/bjlag/go-metrics/internal/handler/update/general"
@@ -16,10 +16,11 @@ import (
 	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
+	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, backup backup.Creator, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, databaseDSN string, backup backup.Creator, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -28,13 +29,13 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	)
 
 	r.Route("/", func(r chi.Router) {
-		r.With(middleware.SetHeaderResponse("Content-Type", []string{"text/html"})).
+		r.With(middleware.SetHeaderResponse("Content-Type", "text/html")).
 			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
 	})
 
 	r.Route("/update", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
-		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, backup, log).Handle)
@@ -43,13 +44,17 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	})
 
 	r.Route("/value", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
-		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
+	})
+
+	r.Route("/ping", func(r chi.Router) {
+		r.Get("/", ping.NewHandler(databaseDSN, log).Handle)
 	})
 
 	return r
