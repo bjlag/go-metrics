@@ -30,13 +30,13 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	)
 
 	r.Route("/", func(r chi.Router) {
-		r.With(middleware.SetHeaderResponse("Content-Type", []string{"text/html"})).
+		r.With(middleware.SetHeaderResponse("Content-Type", "text/html")).
 			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
 	})
 
 	r.Route("/update", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
-		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, backup, log).Handle)
@@ -45,8 +45,8 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	})
 
 	r.Route("/value", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", []string{"application/json"})
-		textContentType := middleware.SetHeaderResponse("Content-Type", []string{"text/plain", "charset=utf-8"})
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
