@@ -34,7 +34,7 @@ func (o *netAddress) Set(value string) error {
 const (
 	defaultHost            = "localhost"
 	defaultPort            = 8080
-	defaultDatabaseDSN     = "postgresql://postgres:local@localhost:5432/metrics"
+	defaultDatabaseDSN     = "postgresql://postgres:local@localhost:5432/metrics?sslmode=disable"
 	defaultLogLevel        = "info"
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "data/metrics.json"

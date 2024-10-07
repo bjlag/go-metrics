@@ -95,7 +95,7 @@ func run() error {
 
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, memStorage, databaseDSN+"?sslmode=disable", b, log),
+		Handler: initRouter(htmlRenderer, memStorage, databaseDSN, b, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
