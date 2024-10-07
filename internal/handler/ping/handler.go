@@ -1,26 +1,32 @@
 package ping
 
 import (
+	"github.com/jmoiron/sqlx"
 	"net/http"
 )
 
 type Handler struct {
-	db  db
+	dsn string
 	log log
 }
 
-func NewHandler(db db, log log) *Handler {
+func NewHandler(dsn string, log log) *Handler {
 	return &Handler{
-		db:  db,
+		dsn: dsn,
 		log: log,
 	}
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, _ *http.Request) {
-	err := h.db.Ping()
+	db, err := sqlx.Connect("pgx", h.dsn+"?sslmode=disable")
+	if err != nil {
+		h.log.WithError(err).Error("Unable to connect to database")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	err = db.Ping()
 	if err != nil {
 		h.log.WithError(err).Error("Ping database is failed")
 		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 }

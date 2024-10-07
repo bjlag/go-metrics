@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
@@ -21,7 +20,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, databaseDSN string, backup backup.Creator, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -55,7 +54,7 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	})
 
 	r.Route("/ping", func(r chi.Router) {
-		r.Get("/", ping.NewHandler(db, log).Handle)
+		r.Get("/", ping.NewHandler(databaseDSN, log).Handle)
 	})
 
 	return r
