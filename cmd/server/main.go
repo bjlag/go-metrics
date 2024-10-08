@@ -52,7 +52,7 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	//db := mustInitDB(log)
+	_ = initDB(log)
 
 	log.WithField("address", addr.String()).Info("started server")
 	log.WithField("dsn", databaseDSN).Info("started db")
