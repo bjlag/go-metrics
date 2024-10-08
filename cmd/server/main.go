@@ -52,10 +52,14 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	_ = initDB(log)
+	db := initDB(log)
 
 	log.WithField("address", addr.String()).Info("started server")
-	log.WithField("dsn", databaseDSN).Info("started db")
+
+	if db != nil {
+		log.WithField("dsn", databaseDSN).Info("started db")
+	}
+
 	log.Info(fmt.Sprintf("log level '%s'", logLevel))
 	log.Info(fmt.Sprintf("store interval %s", storeInterval))
 	log.Info(fmt.Sprintf("file storage path '%s'", fileStoragePath))
@@ -95,7 +99,7 @@ func run() error {
 
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, memStorage, databaseDSN, b, log),
+		Handler: initRouter(htmlRenderer, memStorage, db, b, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
