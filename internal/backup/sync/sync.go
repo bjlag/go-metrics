@@ -5,17 +5,17 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
-	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 type Backup struct {
-	storage  *memory.Storage
+	storage  storage.Repository
 	fStorage *file.Storage
 	log      logger.Logger
 }
 
-func New(storage *memory.Storage, fStorage *file.Storage, log logger.Logger) *Backup {
+func New(storage storage.Repository, fStorage *file.Storage, log logger.Logger) *Backup {
 	return &Backup{
 		storage:  storage,
 		fStorage: fStorage,

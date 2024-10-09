@@ -16,8 +16,10 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/storage/pg"
 )
 
 const (
@@ -52,30 +54,29 @@ func run() error {
 		_ = log.Close()
 	}()
 
-	db := initDB(databaseDSN, log)
-
 	log.WithField("address", addr.String()).Info("started server")
-
-	if db != nil {
-		log.WithField("dsn", databaseDSN).Info("started db")
-	}
-
 	log.Info(fmt.Sprintf("log level '%s'", logLevel))
 	log.Info(fmt.Sprintf("store interval %s", storeInterval))
 	log.Info(fmt.Sprintf("file storage path '%s'", fileStoragePath))
 	log.Info(fmt.Sprintf("restore metrics %v", restore))
 
-	memStorage := memory.NewStorage()
-	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
+	db := initDB(databaseDSN, log)
 
-	fileStorage, err := file.NewStorage(fileStoragePath)
+	var store storage.Repository
+	if db != nil {
+		store = pg.NewStorage(db, log)
+	} else {
+		store = memory.NewStorage()
+	}
+
+	backupStore, err := file.NewStorage(fileStoragePath)
 	if err != nil {
 		log.WithField("error", err.Error()).Error("failed to create file storage")
 		return err
 	}
 
 	if restore {
-		err := restoreData(ctx, fileStorage, memStorage)
+		err := restoreData(ctx, backupStore, store)
 		if err != nil {
 			log.WithField("error", err.Error()).
 				Error("failed to load backup data")
@@ -85,21 +86,22 @@ func run() error {
 	}
 
 	var (
-		b  backup.Creator
-		ba *asyncBackup.Backup
+		backupCreator      backup.Creator
+		asyncBackupCreator *asyncBackup.Backup
 	)
 
 	if storeInterval <= 0 {
-		b = syncBackup.New(memStorage, fileStorage, log)
+		backupCreator = syncBackup.New(store, backupStore, log)
 	} else {
-		ba = asyncBackup.New(memStorage, fileStorage, storeInterval, log)
-		ba.Start(ctx)
-		b = ba
+		asyncBackupCreator = asyncBackup.New(store, backupStore, storeInterval, log)
+		asyncBackupCreator.Start(ctx)
+		backupCreator = asyncBackupCreator
 	}
 
+	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, memStorage, db, b, log),
+		Handler: initRouter(htmlRenderer, store, db, backupCreator, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -112,7 +114,7 @@ func run() error {
 		<-gCtx.Done()
 
 		log.Info("graceful shutting down server")
-		ba.Stop(ctx)
+		asyncBackupCreator.Stop(ctx)
 		return httpServer.Shutdown(context.Background())
 	})
 

@@ -25,6 +25,8 @@ func initDB(dsn string, log logger.Logger) *sqlx.DB {
 		return nil
 	}
 
+	log.WithField("dsn", dsn).Info("started db")
+
 	return db
 }
 
@@ -32,7 +34,7 @@ func initSchema(db *sqlx.DB) error {
 	var schema = `
 		CREATE TABLE IF NOT EXISTS gauge_metrics (
 		    id varchar(100) PRIMARY KEY NOT NULL,
-		    value double precision
+		    value double precision NOT NULL
 		);
 		
 		COMMENT ON TABLE gauge_metrics IS 'Метрики типа gauge';
@@ -41,12 +43,12 @@ func initSchema(db *sqlx.DB) error {
 		
 		CREATE TABLE IF NOT EXISTS counter_metrics (
 		    id varchar(100) PRIMARY KEY NOT NULL,
-		    delta int
+		    value int NOT NULL
 		);
 		
 		COMMENT ON TABLE counter_metrics IS 'Метрики типа counter';
 		COMMENT ON COLUMN counter_metrics.id IS 'ID метрики';
-		COMMENT ON COLUMN counter_metrics.delta IS 'Значение метрики';
+		COMMENT ON COLUMN counter_metrics.value IS 'Значение метрики';
 	`
 
 	_, err := db.Exec(schema)
