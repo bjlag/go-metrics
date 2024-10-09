@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 
@@ -18,6 +20,11 @@ func initDB(dsn string, log logger.Logger) *sqlx.DB {
 		log.WithError(err).Error("Unable to connect to database")
 		return nil
 	}
+
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	err = initSchema(db)
 	if err != nil {
