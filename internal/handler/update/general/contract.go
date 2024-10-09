@@ -3,21 +3,23 @@
 package general
 
 import (
+	"context"
+
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type repo interface {
-	SetGauge(name string, value float64)
-	AddCounter(name string, value int64)
-	GetGauge(name string) (float64, error)
-	GetCounter(name string) (int64, error)
-	GetAllGauges() storage.Gauges
-	GetAllCounters() storage.Counters
+	SetGauge(ctx context.Context, name string, value float64)
+	AddCounter(ctx context.Context, name string, value int64)
+	GetGauge(ctx context.Context, name string) (float64, error)
+	GetCounter(ctx context.Context, name string) (int64, error)
+	GetAllGauges(ctx context.Context) storage.Gauges
+	GetAllCounters(ctx context.Context) storage.Counters
 }
 
 type backup interface {
-	Create() error
+	Create(ctx context.Context) error
 }
 
 type log interface {

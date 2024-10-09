@@ -1,6 +1,7 @@
 package counter_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,13 +35,13 @@ func Test_Handle(t *testing.T) {
 			name: "success",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().AddCounter("test", int64(1)).Times(1)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), "test", int64(1)).Times(1)
 
 				return mockStorage
 			},
 			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
 				mockBackup := mock.NewMockbackup(ctrl)
-				mockBackup.EXPECT().Create().Times(1)
+				mockBackup.EXPECT().Create(context.Background()).Times(1)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
@@ -60,13 +61,13 @@ func Test_Handle(t *testing.T) {
 			name: "error empty name",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
 			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
 				mockBackup := mock.NewMockbackup(ctrl)
-				mockBackup.EXPECT().Create().Times(0)
+				mockBackup.EXPECT().Create(context.Background()).Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
@@ -86,13 +87,13 @@ func Test_Handle(t *testing.T) {
 			name: "error invalid value is float",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
 			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
 				mockBackup := mock.NewMockbackup(ctrl)
-				mockBackup.EXPECT().Create().Times(0)
+				mockBackup.EXPECT().Create(context.Background()).Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
@@ -113,13 +114,13 @@ func Test_Handle(t *testing.T) {
 			name: "error invalid value is string",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any()).Times(0)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
 			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
 				mockBackup := mock.NewMockbackup(ctrl)
-				mockBackup.EXPECT().Create().Times(0)
+				mockBackup.EXPECT().Create(context.Background()).Times(0)
 				return mockBackup
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {

@@ -1,6 +1,7 @@
 package memory_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,12 +40,12 @@ func TestStorage_Counter(t *testing.T) {
 
 	s := memory.NewStorage()
 	for _, value := range []int64{1, 2, 3, 4, 5} {
-		s.AddCounter("name", value)
+		s.AddCounter(context.Background(), "name", value)
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			curValue, err := s.GetCounter(tt.args.name)
+			curValue, err := s.GetCounter(context.Background(), tt.args.name)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -88,12 +89,12 @@ func TestStorage_SetGauge(t *testing.T) {
 	s := memory.NewStorage()
 
 	for _, value := range []float64{1, 2.2, 3.3, 0, 5} {
-		s.SetGauge("name", value)
+		s.SetGauge(context.Background(), "name", value)
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			curValue, err := s.GetGauge(tt.args.name)
+			curValue, err := s.GetGauge(context.Background(), tt.args.name)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

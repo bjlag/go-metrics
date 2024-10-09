@@ -23,7 +23,7 @@ func NewHandler(repo repo, log log) *Handler {
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	storedValue, err := h.repo.GetCounter(name)
+	storedValue, err := h.repo.GetCounter(r.Context(), name)
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
