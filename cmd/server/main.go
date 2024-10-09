@@ -75,7 +75,7 @@ func run() error {
 	}
 
 	if restore {
-		err := restoreData(fileStorage, memStorage)
+		err := restoreData(ctx, fileStorage, memStorage)
 		if err != nil {
 			log.WithField("error", err.Error()).
 				Error("failed to load backup data")
@@ -93,7 +93,7 @@ func run() error {
 		b = syncBackup.New(memStorage, fileStorage, log)
 	} else {
 		ba = asyncBackup.New(memStorage, fileStorage, storeInterval, log)
-		ba.Start()
+		ba.Start(ctx)
 		b = ba
 	}
 
@@ -112,7 +112,7 @@ func run() error {
 		<-gCtx.Done()
 
 		log.Info("graceful shutting down server")
-		ba.Stop()
+		ba.Stop(ctx)
 		return httpServer.Shutdown(context.Background())
 	})
 

@@ -24,15 +24,15 @@ func NewHandler(renderer renderer, repo repo, log log) *Handler {
 	}
 }
 
-func (h Handler) Handle(w http.ResponseWriter, _ *http.Request) {
+func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Title    string
 		Gauges   storage.Gauges
 		Counters storage.Counters
 	}{
 		Title:    "Список метрик",
-		Gauges:   h.repo.GetAllGauges(),
-		Counters: h.repo.GetAllCounters(),
+		Gauges:   h.repo.GetAllGauges(r.Context()),
+		Counters: h.repo.GetAllCounters(r.Context()),
 	}
 
 	err := h.renderer.Render(w, "list.html", data)

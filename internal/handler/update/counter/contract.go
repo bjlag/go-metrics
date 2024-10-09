@@ -3,14 +3,18 @@
 
 package counter
 
-import "github.com/bjlag/go-metrics/internal/logger"
+import (
+	"context"
+
+	"github.com/bjlag/go-metrics/internal/logger"
+)
 
 type repo interface {
-	AddCounter(name string, value int64)
+	AddCounter(ctx context.Context, name string, value int64)
 }
 
 type backup interface {
-	Create() error
+	Create(ctx context.Context) error
 }
 
 type log interface {

@@ -2,6 +2,7 @@ package general
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -56,7 +57,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := h.getResponseData(in)
+	data, err := h.getResponseData(r.Context(), in)
 	if err != nil {
 		var metricNotFoundError *memory.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
@@ -81,14 +82,14 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) getResponseData(request model.ValueIn) ([]byte, error) {
+func (h Handler) getResponseData(ctx context.Context, request model.ValueIn) ([]byte, error) {
 	out := &model.ValueOut{
 		ID:    request.ID,
 		MType: request.MType,
 	}
 
 	if request.IsGauge() {
-		value, err := h.repo.GetGauge(request.ID)
+		value, err := h.repo.GetGauge(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +97,7 @@ func (h Handler) getResponseData(request model.ValueIn) ([]byte, error) {
 	}
 
 	if request.IsCounter() {
-		value, err := h.repo.GetCounter(request.ID)
+		value, err := h.repo.GetCounter(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}

@@ -1,5 +1,7 @@
 package backup
 
+import "context"
+
 type Creator interface {
-	Create() error
+	Create(ctx context.Context) error
 }

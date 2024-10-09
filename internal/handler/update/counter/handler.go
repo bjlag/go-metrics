@@ -37,9 +37,9 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.repo.AddCounter(nameMetric, value)
+	h.repo.AddCounter(r.Context(), nameMetric, value)
 
-	err = h.backup.Create()
+	err = h.backup.Create(r.Context())
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to backup data")

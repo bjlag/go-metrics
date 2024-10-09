@@ -3,14 +3,17 @@
 
 package gauge
 
-import internalLogger "github.com/bjlag/go-metrics/internal/logger"
+import (
+	"context"
+	internalLogger "github.com/bjlag/go-metrics/internal/logger"
+)
 
 type repo interface {
-	SetGauge(name string, value float64)
+	SetGauge(ctx context.Context, name string, value float64)
 }
 
 type backup interface {
-	Create() error
+	Create(ctx context.Context) error
 }
 
 type log interface {

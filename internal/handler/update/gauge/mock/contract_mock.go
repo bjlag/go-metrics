@@ -5,6 +5,7 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	logger "github.com/bjlag/go-metrics/internal/logger"
@@ -35,15 +36,15 @@ func (m *Mockrepo) EXPECT() *MockrepoMockRecorder {
 }
 
 // SetGauge mocks base method.
-func (m *Mockrepo) SetGauge(name string, value float64) {
+func (m *Mockrepo) SetGauge(ctx context.Context, name string, value float64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetGauge", name, value)
+	m.ctrl.Call(m, "SetGauge", ctx, name, value)
 }
 
 // SetGauge indicates an expected call of SetGauge.
-func (mr *MockrepoMockRecorder) SetGauge(name, value interface{}) *gomock.Call {
+func (mr *MockrepoMockRecorder) SetGauge(ctx, name, value interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*Mockrepo)(nil).SetGauge), name, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetGauge", reflect.TypeOf((*Mockrepo)(nil).SetGauge), ctx, name, value)
 }
 
 // Mockbackup is a mock of backup interface.
@@ -70,17 +71,17 @@ func (m *Mockbackup) EXPECT() *MockbackupMockRecorder {
 }
 
 // Create mocks base method.
-func (m *Mockbackup) Create() error {
+func (m *Mockbackup) Create(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create")
+	ret := m.ctrl.Call(m, "Create", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockbackupMockRecorder) Create() *gomock.Call {
+func (mr *MockbackupMockRecorder) Create(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockbackup)(nil).Create))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*Mockbackup)(nil).Create), ctx)
 }
 
 // Mocklog is a mock of log interface.

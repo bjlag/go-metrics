@@ -3,6 +3,7 @@
 package list
 
 import (
+	"context"
 	"io"
 
 	"github.com/bjlag/go-metrics/internal/logger"
@@ -14,8 +15,8 @@ type renderer interface {
 }
 
 type repo interface {
-	GetAllGauges() storage.Gauges
-	GetAllCounters() storage.Counters
+	GetAllGauges(ctx context.Context) storage.Gauges
+	GetAllCounters(ctx context.Context) storage.Counters
 }
 
 type log interface {

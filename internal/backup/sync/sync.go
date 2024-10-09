@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage/file"
@@ -21,9 +23,9 @@ func New(storage *memory.Storage, fStorage *file.Storage, log logger.Logger) *Ba
 	}
 }
 
-func (b *Backup) Create() error {
-	counters := b.storage.GetAllCounters()
-	gauges := b.storage.GetAllGauges()
+func (b *Backup) Create(ctx context.Context) error {
+	counters := b.storage.GetAllCounters(ctx)
+	gauges := b.storage.GetAllGauges(ctx)
 
 	data := make([]file.Metric, 0, len(counters)+len(gauges))
 

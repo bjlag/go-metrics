@@ -2,6 +2,7 @@ package general
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,7 +61,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.saveMetric(in)
+	err = h.saveMetric(r.Context(), in)
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to save metric")
@@ -68,13 +69,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.backup.Create()
+	err = h.backup.Create(r.Context())
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to backup data")
 	}
 
-	data, err := h.getResponseData(in)
+	data, err := h.getResponseData(r.Context(), in)
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to get response data")
@@ -90,12 +91,12 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) saveMetric(request model.UpdateIn) error {
+func (h *Handler) saveMetric(ctx context.Context, request model.UpdateIn) error {
 	switch request.MType {
 	case model.TypeCounter:
-		h.repo.AddCounter(request.ID, *request.Delta)
+		h.repo.AddCounter(ctx, request.ID, *request.Delta)
 	case model.TypeGauge:
-		h.repo.SetGauge(request.ID, *request.Value)
+		h.repo.SetGauge(ctx, request.ID, *request.Value)
 	default:
 		return fmt.Errorf("unknown metric type: %s", request.MType)
 	}
@@ -103,14 +104,14 @@ func (h *Handler) saveMetric(request model.UpdateIn) error {
 	return nil
 }
 
-func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
+func (h *Handler) getResponseData(ctx context.Context, request model.UpdateIn) ([]byte, error) {
 	out := &model.UpdateOut{
 		ID:    request.ID,
 		MType: request.MType,
 	}
 
 	if request.IsGauge() {
-		value, err := h.repo.GetGauge(request.ID)
+		value, err := h.repo.GetGauge(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +119,7 @@ func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
 	}
 
 	if request.IsCounter() {
-		value, err := h.repo.GetCounter(request.ID)
+		value, err := h.repo.GetCounter(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}
