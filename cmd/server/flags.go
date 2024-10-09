@@ -34,7 +34,6 @@ func (o *netAddress) Set(value string) error {
 const (
 	defaultHost            = "localhost"
 	defaultPort            = 8080
-	defaultDatabaseDSN     = "postgresql://postgres:local@localhost:5432/metrics?sslmode=disable"
 	defaultLogLevel        = "info"
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "data/metrics.json"
@@ -65,7 +64,7 @@ func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
-	flag.StringVar(&databaseDSN, "d", defaultDatabaseDSN, "Database DSN")
+	flag.StringVar(&databaseDSN, "d", "", "Database DSN")
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
 	flag.Func("i", "Store interval in seconds", func(s string) error {
 		var err error
