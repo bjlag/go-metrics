@@ -15,7 +15,7 @@ import (
 
 const (
 	baseURLTemplate = "http://%s:%d"
-	urlTemplate     = "%s/update/"
+	urlTemplate     = "%s/updates/"
 
 	timeout       = 100 * time.Millisecond
 	maxRetries    = 2
@@ -39,30 +39,35 @@ func NewHTTPSender(host string, port int) *MetricSender {
 	}
 }
 
-func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
-	in := &model.UpdateIn{
-		ID:    metric.Name(),
-		MType: metric.Kind(),
+func (s MetricSender) Send(metrics []*collector.Metric) (*resty.Response, error) {
+	req := make([]model.UpdateIn, 0, len(metrics))
+	for _, m := range metrics {
+		in := model.UpdateIn{
+			ID:    m.Name(),
+			MType: m.Kind(),
+		}
+
+		switch m.Kind() {
+		case collector.Gauge:
+			value, err := m.GaugeValue()
+			if err != nil {
+				return nil, err
+			}
+			in.Value = &value
+		case collector.Counter:
+			value, err := m.CounterValue()
+			if err != nil {
+				return nil, err
+			}
+			in.Delta = &value
+		default:
+			continue
+		}
+
+		req = append(req, in)
 	}
 
-	switch metric.Kind() {
-	case collector.Gauge:
-		value, err := metric.GaugeValue()
-		if err != nil {
-			return nil, err
-		}
-		in.Value = &value
-	case collector.Counter:
-		value, err := metric.CounterValue()
-		if err != nil {
-			return nil, err
-		}
-		in.Delta = &value
-	default:
-		return nil, fmt.Errorf("unknown metric kind: %s", metric.Kind())
-	}
-
-	jsonb, err := json.Marshal(in)
+	jsonb, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal metric: %s", err)
 	}

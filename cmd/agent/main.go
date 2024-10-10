@@ -76,7 +76,10 @@ func run() error {
 			case <-pollTicker.C:
 				metricCollector.ReadStats()
 
-				response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
+				metrics := []*collector.Metric{
+					collector.NewMetric(collector.Counter, "PollCount", 1),
+				}
+				response, err := metricClient.Send(metrics)
 				if err != nil {
 					log.WithField("error", err.Error()).
 						Error("error in sending metric")
@@ -92,38 +95,26 @@ func run() error {
 	})
 
 	g.Go(func() error {
-		gr, _ := errgroup.WithContext(ctx)
-
 		for {
 			select {
 			case <-gCtx.Done():
 				log.Info("stopped send metrics")
 				return nil
 			case <-reportTicker.C:
-				for _, metric := range metricCollector.Collect() {
-					gr.Go(func() error {
-						select {
-						case <-gCtx.Done():
-							return nil
-						default:
-							response, err := metricClient.Send(metric)
-							if err != nil {
-								return err
-							}
-
-							log.WithField("uri", response.Request.URL).
-								WithField("response", string(response.Body())).
-								WithField("status", response.StatusCode()).
-								Info("sent request")
-						}
-
-						return nil
-					})
+				metrics := metricCollector.Collect()
+				if len(metrics) == 0 {
+					continue
 				}
 
-				if err := gr.Wait(); err != nil {
-					log.Error(err.Error())
+				response, err := metricClient.Send(metrics)
+				if err != nil {
+					return err
 				}
+
+				log.WithField("uri", response.Request.URL).
+					WithField("response", string(response.Body())).
+					WithField("status", response.StatusCode()).
+					Info("sent request")
 			}
 		}
 	})
