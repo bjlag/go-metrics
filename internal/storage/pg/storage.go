@@ -181,19 +181,23 @@ func (s Storage) SetGauges(ctx context.Context, gauges []storage.Gauge) error {
 		return nil
 	}
 
-	rows := make([]modelGauge, 0, len(gauges))
-	uniq := make(map[string]struct{}, len(gauges))
-	for _, gauge := range gauges {
-		if _, ok := uniq[gauge.ID]; ok {
+	models := make(map[string]modelGauge, len(gauges))
+	for _, counter := range gauges {
+		if v, ok := models[counter.ID]; ok {
+			v.Value += counter.Value
+			models[counter.ID] = v
 			continue
 		}
 
-		uniq[gauge.ID] = struct{}{}
+		models[counter.ID] = modelGauge{
+			ID:    counter.ID,
+			Value: counter.Value,
+		}
+	}
 
-		rows = append(rows, modelGauge{
-			ID:    gauge.ID,
-			Value: gauge.Value,
-		})
+	rows := make([]modelGauge, 0, len(models))
+	for _, m := range models {
+		rows = append(rows, m)
 	}
 
 	query := `
@@ -265,19 +269,23 @@ func (s Storage) AddCounters(ctx context.Context, counters []storage.Counter) er
 		return nil
 	}
 
-	rows := make([]modelCounter, 0, len(counters))
-	uniq := make(map[string]struct{}, len(counters))
+	models := make(map[string]modelCounter, len(counters))
 	for _, counter := range counters {
-		if _, ok := uniq[counter.ID]; ok {
+		if v, ok := models[counter.ID]; ok {
+			v.Value += counter.Value
+			models[counter.ID] = v
 			continue
 		}
 
-		uniq[counter.ID] = struct{}{}
-
-		rows = append(rows, modelCounter{
+		models[counter.ID] = modelCounter{
 			ID:    counter.ID,
 			Value: counter.Value,
-		})
+		}
+	}
+
+	rows := make([]modelCounter, 0, len(models))
+	for _, m := range models {
+		rows = append(rows, m)
 	}
 
 	query := `
