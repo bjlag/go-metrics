@@ -52,6 +52,11 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 		return nil
 	}
 
+	if rows.Err() != nil {
+		s.log.WithError(rows.Err()).Error("failed to query")
+		return nil
+	}
+
 	var models []modelGauge
 	for rows.Next() {
 		var m modelGauge
@@ -86,6 +91,11 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		s.log.WithError(err).Error("failed to query")
+		return nil
+	}
+
+	if rows.Err() != nil {
+		s.log.WithError(rows.Err()).Error("failed to query")
 		return nil
 	}
 
