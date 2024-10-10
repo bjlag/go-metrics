@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/model"
-	"github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type Handler struct {
@@ -39,21 +39,15 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) {
+			h.log.Info(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusNotFound)
+			return
+		}
+
 		h.log.WithField("error", err.Error()).
 			Error("Unmarshal error")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	if in.ID == "" {
-		h.log.Info("Metric ID not specified")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	if !in.IsValid() {
-		h.log.Info("Metric type is invalid")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
