@@ -50,7 +50,7 @@ func initSchema(db *sqlx.DB) error {
 		
 		CREATE TABLE IF NOT EXISTS counter_metrics (
 		    id varchar(100) PRIMARY KEY NOT NULL,
-		    value int NOT NULL
+		    value bigint NOT NULL
 		);
 		
 		COMMENT ON TABLE counter_metrics IS 'Метрики типа counter';
