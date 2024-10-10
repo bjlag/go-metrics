@@ -40,6 +40,7 @@ const (
 	defaultRestore         = true
 
 	envAddress         = "ADDRESS"
+	envDatabaseDSN     = "DATABASE_DSN"
 	envLogLevel        = "LOG_LEVEL"
 	envStoreInterval   = "STORE_INTERVAL"
 	envFileStoragePath = "FILE_STORAGE_PATH"
@@ -52,6 +53,7 @@ var (
 		port: defaultPort,
 	}
 
+	databaseDSN     string
 	logLevel        string
 	storeInterval   = defaultStoreInterval * time.Second
 	fileStoragePath string
@@ -62,6 +64,7 @@ func parseFlags() {
 	_ = flag.Value(addr)
 
 	flag.Var(addr, "a", "Server address: host:port")
+	flag.StringVar(&databaseDSN, "d", "", "Database DSN")
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
 	flag.Func("i", "Store interval in seconds", func(s string) error {
 		var err error
@@ -87,6 +90,10 @@ func parseEnvs() {
 
 		addr.host = host
 		addr.port = port
+	}
+
+	if envDatabaseDSNValue := os.Getenv(envDatabaseDSN); envDatabaseDSNValue != "" {
+		databaseDSN = envDatabaseDSNValue
 	}
 
 	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {

@@ -2,11 +2,15 @@
 
 package general
 
-import "github.com/bjlag/go-metrics/internal/logger"
+import (
+	"context"
+
+	"github.com/bjlag/go-metrics/internal/logger"
+)
 
 type repo interface {
-	GetGauge(name string) (float64, error)
-	GetCounter(name string) (int64, error)
+	GetGauge(ctx context.Context, name string) (float64, error)
+	GetCounter(ctx context.Context, name string) (int64, error)
 }
 
 type log interface {

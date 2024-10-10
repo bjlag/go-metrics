@@ -18,7 +18,7 @@ import (
 
 func TestMetricSender_Send(t *testing.T) {
 	type args struct {
-		metric *collector.Metric
+		metric []*collector.Metric
 	}
 
 	tests := []struct {
@@ -31,7 +31,7 @@ func TestMetricSender_Send(t *testing.T) {
 		{
 			name: "success counter",
 			args: args{
-				metric: collector.NewMetric("counter", "name", 1),
+				metric: []*collector.Metric{collector.NewMetric("counter", "name", 1)},
 			},
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/update/", r.URL.Path)
@@ -58,7 +58,7 @@ func TestMetricSender_Send(t *testing.T) {
 		{
 			name: "success gauge",
 			args: args{
-				metric: collector.NewMetric("gauge", "name", 1.1),
+				metric: []*collector.Metric{collector.NewMetric("gauge", "name", 1.1)},
 			},
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/update/", r.URL.Path)
@@ -85,7 +85,7 @@ func TestMetricSender_Send(t *testing.T) {
 		{
 			name: "error unknown metric type",
 			args: args{
-				metric: collector.NewMetric("unknown_type", "name", 1.1),
+				metric: []*collector.Metric{collector.NewMetric("unknown_type", "name", 1.1)},
 			},
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/update/", r.URL.Path)
