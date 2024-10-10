@@ -7,6 +7,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
 	"github.com/bjlag/go-metrics/internal/handler/ping"
+	updateBatch "github.com/bjlag/go-metrics/internal/handler/update/batch"
 	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
 	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
 	updateGaneral "github.com/bjlag/go-metrics/internal/handler/update/general"
@@ -42,6 +43,12 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler(log).Handle)
+	})
+
+	r.Route("/updates", func(r chi.Router) {
+		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+
+		r.With(jsonContentType).Post("/", updateBatch.NewHandler(storage, backup, log).Handle)
 	})
 
 	r.Route("/value", func(r chi.Router) {

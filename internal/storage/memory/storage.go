@@ -54,6 +54,17 @@ func (s *Storage) SetGauge(_ context.Context, id string, value float64) {
 	s.gauges[id] = value
 }
 
+func (s *Storage) SetGauges(_ context.Context, gauges []storage.Gauge) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, gauge := range gauges {
+		s.gauges[gauge.ID] = gauge.Value
+	}
+
+	return nil
+}
+
 func (s *Storage) GetCounter(_ context.Context, id string) (int64, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -77,4 +88,21 @@ func (s *Storage) AddCounter(_ context.Context, id string, value int64) {
 	}
 
 	s.counters[id] = currentValue + value
+}
+
+func (s *Storage) AddCounters(_ context.Context, counters []storage.Counter) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for _, counter := range counters {
+		currentValue, ok := s.counters[counter.ID]
+		if !ok {
+			s.counters[counter.ID] = counter.Value
+			return nil
+		}
+
+		s.counters[counter.ID] = currentValue + counter.Value
+	}
+
+	return nil
 }

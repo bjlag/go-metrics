@@ -54,14 +54,14 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 
 	var models []modelGauge
 	for rows.Next() {
-		var model modelGauge
-		err = rows.Scan(&model.ID, &model.Value)
+		var m modelGauge
+		err = rows.Scan(&m.ID, &m.Value)
 		if err != nil {
 			s.log.WithError(err).Error("failed to scan")
 			return nil
 		}
 
-		models = append(models, model)
+		models = append(models, m)
 	}
 
 	gauges := make(storage.Gauges, len(models))
@@ -158,6 +158,34 @@ func (s Storage) SetGauge(ctx context.Context, id string, value float64) {
 	}
 }
 
+func (s Storage) SetGauges(ctx context.Context, gauges []storage.Gauge) error {
+	if len(gauges) == 0 {
+		return nil
+	}
+
+	rows := make([]modelGauge, 0, len(gauges))
+	for _, gauge := range gauges {
+		rows = append(rows, modelGauge{
+			ID:    gauge.ID,
+			Value: gauge.Value,
+		})
+	}
+
+	query := `
+		INSERT INTO gauge_metrics (id, value) VALUES (:id, :value)
+		ON CONFLICT (id) DO UPDATE
+    		SET value = excluded.value
+	`
+
+	_, err := s.db.NamedExecContext(ctx, query, rows)
+	if err != nil {
+		s.log.WithError(err).Error("error setting gauges")
+		return err
+	}
+
+	return nil
+}
+
 func (s Storage) GetCounter(ctx context.Context, id string) (int64, error) {
 	query := `SELECT id, value FROM counter_metrics WHERE id = $1`
 	stmt, err := s.db.PrepareContext(ctx, query)
@@ -205,4 +233,32 @@ func (s Storage) AddCounter(ctx context.Context, id string, value int64) {
 		s.log.WithError(err).Error("error setting gauge")
 		return
 	}
+}
+
+func (s Storage) AddCounters(ctx context.Context, counters []storage.Counter) error {
+	if len(counters) == 0 {
+		return nil
+	}
+
+	rows := make([]modelCounter, 0, len(counters))
+	for _, counter := range counters {
+		rows = append(rows, modelCounter{
+			ID:    counter.ID,
+			Value: counter.Value,
+		})
+	}
+
+	query := `
+		INSERT INTO counter_metrics (id, value) VALUES (:id, :value)
+		ON CONFLICT (id) DO UPDATE
+    		SET value = counter_metrics.value + :value
+	`
+
+	_, err := s.db.NamedExecContext(ctx, query, rows)
+	if err != nil {
+		s.log.WithError(err).Error("error setting counters")
+		return err
+	}
+
+	return nil
 }

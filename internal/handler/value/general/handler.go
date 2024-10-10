@@ -76,22 +76,22 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) getResponseData(ctx context.Context, request model.ValueIn) ([]byte, error) {
+func (h Handler) getResponseData(ctx context.Context, in model.ValueIn) ([]byte, error) {
 	out := &model.ValueOut{
-		ID:    request.ID,
-		MType: request.MType,
+		ID:    in.ID,
+		MType: in.MType,
 	}
 
-	if request.IsGauge() {
-		value, err := h.repo.GetGauge(ctx, request.ID)
+	if in.IsGauge() {
+		value, err := h.repo.GetGauge(ctx, in.ID)
 		if err != nil {
 			return nil, err
 		}
 		out.Value = &value
 	}
 
-	if request.IsCounter() {
-		value, err := h.repo.GetCounter(ctx, request.ID)
+	if in.IsCounter() {
+		value, err := h.repo.GetCounter(ctx, in.ID)
 		if err != nil {
 			return nil, err
 		}

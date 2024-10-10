@@ -53,6 +53,14 @@ func (m *UpdateIn) UnmarshalJSON(b []byte) error {
 		return ErrInvalidType
 	}
 
+	if m.IsCounter() && m.Delta == nil {
+		return ErrInvalidValue
+	}
+
+	if m.IsGauge() && m.Value == nil {
+		return ErrInvalidValue
+	}
+
 	return nil
 }
 

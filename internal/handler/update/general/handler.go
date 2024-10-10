@@ -44,7 +44,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
-		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) || errors.Is(err, model.ErrInvalidValue) {
 			h.log.Info(err.Error())
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusNotFound)
 			return
@@ -86,14 +86,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) saveMetric(ctx context.Context, request model.UpdateIn) error {
-	switch request.MType {
+func (h *Handler) saveMetric(ctx context.Context, in model.UpdateIn) error {
+	switch in.MType {
 	case model.TypeCounter:
-		h.repo.AddCounter(ctx, request.ID, *request.Delta)
+		h.repo.AddCounter(ctx, in.ID, *in.Delta)
 	case model.TypeGauge:
-		h.repo.SetGauge(ctx, request.ID, *request.Value)
+		h.repo.SetGauge(ctx, in.ID, *in.Value)
 	default:
-		return fmt.Errorf("unknown metric type: %s", request.MType)
+		return fmt.Errorf("unknown metric type: %s", in.MType)
 	}
 
 	return nil
