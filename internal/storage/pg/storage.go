@@ -183,12 +183,6 @@ func (s Storage) SetGauges(ctx context.Context, gauges []storage.Gauge) error {
 
 	models := make(map[string]modelGauge, len(gauges))
 	for _, counter := range gauges {
-		if v, ok := models[counter.ID]; ok {
-			v.Value += counter.Value
-			models[counter.ID] = v
-			continue
-		}
-
 		models[counter.ID] = modelGauge{
 			ID:    counter.ID,
 			Value: counter.Value,
