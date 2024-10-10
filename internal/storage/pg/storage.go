@@ -164,7 +164,14 @@ func (s Storage) SetGauges(ctx context.Context, gauges []storage.Gauge) error {
 	}
 
 	rows := make([]modelGauge, 0, len(gauges))
+	uniq := make(map[string]struct{}, len(gauges))
 	for _, gauge := range gauges {
+		if _, ok := uniq[gauge.ID]; ok {
+			continue
+		}
+
+		uniq[gauge.ID] = struct{}{}
+
 		rows = append(rows, modelGauge{
 			ID:    gauge.ID,
 			Value: gauge.Value,
@@ -241,7 +248,14 @@ func (s Storage) AddCounters(ctx context.Context, counters []storage.Counter) er
 	}
 
 	rows := make([]modelCounter, 0, len(counters))
+	uniq := make(map[string]struct{}, len(counters))
 	for _, counter := range counters {
+		if _, ok := uniq[counter.ID]; ok {
+			continue
+		}
+
+		uniq[counter.ID] = struct{}{}
+
 		rows = append(rows, modelCounter{
 			ID:    counter.ID,
 			Value: counter.Value,
