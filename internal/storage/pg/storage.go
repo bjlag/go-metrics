@@ -2,10 +2,13 @@ package pg
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
@@ -117,15 +120,19 @@ func (s Storage) GetGauge(ctx context.Context, id string) (float64, error) {
 		_ = stmt.Close()
 	}()
 
-	var model modelGauge
+	var m modelGauge
 	row := stmt.QueryRowContext(ctx, id)
-	err = row.Scan(&model.ID, &model.Value)
+	err = row.Scan(&m.ID, &m.Value)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, storage.NewMetricNotFoundError(model.TypeGauge, id)
+		}
+
 		s.log.WithError(err).Error("failed to scan")
 		return 0, err
 	}
 
-	return model.Value, nil
+	return m.Value, nil
 }
 
 func (s Storage) SetGauge(ctx context.Context, id string, value float64) {
@@ -162,15 +169,19 @@ func (s Storage) GetCounter(ctx context.Context, id string) (int64, error) {
 		_ = stmt.Close()
 	}()
 
-	var model modelCounter
+	var m modelCounter
 	row := stmt.QueryRowContext(ctx, id)
-	err = row.Scan(&model.ID, &model.Value)
+	err = row.Scan(&m.ID, &m.Value)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, storage.NewMetricNotFoundError(model.TypeCounter, id)
+		}
+
 		s.log.WithError(err).Error("failed to scan")
 		return 0, err
 	}
 
-	return model.Value, nil
+	return m.Value, nil
 }
 
 func (s Storage) AddCounter(ctx context.Context, id string, value int64) {

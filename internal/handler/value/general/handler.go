@@ -59,7 +59,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.getResponseData(r.Context(), in)
 	if err != nil {
-		var metricNotFoundError *memory.MetricNotFoundError
+		var metricNotFoundError *storage.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
 			h.log.WithField("type", in.MType).
 				WithField("id", in.ID).

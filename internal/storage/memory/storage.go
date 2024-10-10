@@ -41,7 +41,7 @@ func (s *Storage) GetGauge(_ context.Context, id string) (float64, error) {
 
 	value, ok := s.gauges[id]
 	if !ok {
-		return 0, NewMetricNotFoundError("gauge", id)
+		return 0, storage.NewMetricNotFoundError("gauge", id)
 	}
 
 	return value, nil
@@ -60,7 +60,7 @@ func (s *Storage) GetCounter(_ context.Context, id string) (int64, error) {
 
 	value, ok := s.counters[id]
 	if !ok {
-		return 0, NewMetricNotFoundError("counter", id)
+		return 0, storage.NewMetricNotFoundError("counter", id)
 	}
 
 	return value, nil

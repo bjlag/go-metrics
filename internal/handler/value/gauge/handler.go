@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type Handler struct {
@@ -25,7 +25,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	storeValue, err := h.repo.GetGauge(r.Context(), name)
 	if err != nil {
-		var metricNotFoundError *memory.MetricNotFoundError
+		var metricNotFoundError *storage.MetricNotFoundError
 		if errors.As(err, &metricNotFoundError) {
 			h.log.WithField("name", name).
 				Info("Gauge metric not found")
