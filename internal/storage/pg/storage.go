@@ -52,6 +52,10 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 		return nil
 	}
 
+	defer func() {
+		_ = rows.Close()
+	}()
+
 	if rows.Err() != nil {
 		s.log.WithError(rows.Err()).Error("failed to query")
 		return nil
@@ -93,6 +97,10 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 		s.log.WithError(err).Error("failed to query")
 		return nil
 	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	if rows.Err() != nil {
 		s.log.WithError(rows.Err()).Error("failed to query")
