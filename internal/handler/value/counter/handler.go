@@ -25,7 +25,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	storedValue, err := h.repo.GetCounter(r.Context(), name)
 	if err != nil {
-		var metricNotFoundError *storage.MetricNotFoundError
+		var metricNotFoundError *storage.NotFoundError
 		if errors.As(err, &metricNotFoundError) {
 			h.log.WithField("name", name).
 				Info("Counter metric not found")

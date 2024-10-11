@@ -2,26 +2,32 @@ package storage
 
 import "fmt"
 
-type MetricNotFoundError struct {
+type NotFoundError struct {
 	kind string
 	name string
+	err  error
 }
 
-func NewMetricNotFoundError(kind string, name string) *MetricNotFoundError {
-	return &MetricNotFoundError{
+func NewMetricNotFoundError(kind string, name string, err error) *NotFoundError {
+	return &NotFoundError{
 		kind: kind,
 		name: name,
+		err:  err,
 	}
 }
 
-func (e MetricNotFoundError) Error() string {
+func (e NotFoundError) Error() string {
 	return fmt.Sprintf("%s metric '%s' not found", e.kind, e.name)
 }
 
-func (e MetricNotFoundError) Kind() string {
+func (e NotFoundError) Unwrap() error {
+	return e.err
+}
+
+func (e NotFoundError) Kind() string {
 	return e.kind
 }
 
-func (e MetricNotFoundError) Name() string {
+func (e NotFoundError) Name() string {
 	return e.name
 }

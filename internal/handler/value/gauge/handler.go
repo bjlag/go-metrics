@@ -25,7 +25,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	storeValue, err := h.repo.GetGauge(r.Context(), name)
 	if err != nil {
-		var metricNotFoundError *storage.MetricNotFoundError
+		var metricNotFoundError *storage.NotFoundError
 		if errors.As(err, &metricNotFoundError) {
 			h.log.WithField("name", name).
 				Info("Gauge metric not found")

@@ -143,7 +143,7 @@ func (s Storage) GetGauge(ctx context.Context, id string) (float64, error) {
 	err = row.Scan(&m.ID, &m.Value)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, storage.NewMetricNotFoundError(model.TypeGauge, id)
+			return 0, storage.NewMetricNotFoundError(model.TypeGauge, id, err)
 		}
 
 		s.log.WithError(err).Error("failed to scan")
@@ -225,7 +225,7 @@ func (s Storage) GetCounter(ctx context.Context, id string) (int64, error) {
 	err = row.Scan(&m.ID, &m.Value)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, storage.NewMetricNotFoundError(model.TypeCounter, id)
+			return 0, storage.NewMetricNotFoundError(model.TypeCounter, id, err)
 		}
 
 		s.log.WithError(err).Error("failed to scan")
