@@ -17,9 +17,10 @@ const (
 	baseURLTemplate = "http://%s:%d"
 	urlTemplate     = "%s/updates/"
 
-	timeout       = 100 * time.Millisecond
-	maxRetries    = 2
-	retryWaitTime = 500 * time.Millisecond
+	timeout          = 100 * time.Millisecond
+	maxRetries       = 3
+	retryWaitTime    = 200 * time.Millisecond
+	retryMaxWaitTime = 500 * time.Millisecond
 )
 
 type MetricSender struct {
@@ -32,6 +33,7 @@ func NewHTTPSender(host string, port int) *MetricSender {
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
 	client.SetRetryWaitTime(retryWaitTime)
+	client.SetRetryMaxWaitTime(retryMaxWaitTime)
 
 	return &MetricSender{
 		client:  client,
