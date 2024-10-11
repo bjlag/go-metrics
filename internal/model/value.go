@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 type ValueIn struct {
@@ -43,15 +44,16 @@ func (m *ValueIn) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	var errs []error
 	if m.ID == "" {
-		return ErrInvalidID
+		errs = append(errs, ErrInvalidID)
 	}
 
 	if !m.IsValid() {
-		return ErrInvalidType
+		errs = append(errs, ErrInvalidType)
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type ValueOut struct {

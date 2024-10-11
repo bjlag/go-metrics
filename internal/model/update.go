@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 type UpdateIn struct {
@@ -49,19 +50,20 @@ func (m *UpdateIn) UnmarshalJSON(b []byte) error {
 		return ErrInvalidID
 	}
 
+	var errs []error
 	if !m.IsValid() {
-		return ErrInvalidType
+		errs = append(errs, ErrInvalidID)
 	}
 
 	if m.IsCounter() && m.Delta == nil {
-		return ErrInvalidValue
+		errs = append(errs, ErrInvalidValue)
 	}
 
 	if m.IsGauge() && m.Value == nil {
-		return ErrInvalidValue
+		errs = append(errs, ErrInvalidValue)
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type UpdateOut struct {
