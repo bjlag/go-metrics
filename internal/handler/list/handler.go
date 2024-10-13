@@ -37,8 +37,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err := h.renderer.Render(w, "list.html", data)
 	if err != nil {
-		h.log.WithField("err", err.Error()).
-			Error("failed to render list.html")
+		h.log.WithError(err).Error("Failed to render list.html")
 		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
 	}
 }

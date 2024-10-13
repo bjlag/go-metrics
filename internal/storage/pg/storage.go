@@ -39,7 +39,7 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return nil
 	}
 	defer func() {
@@ -48,7 +48,7 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 
 	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
-		s.log.WithError(err).Error("failed to query")
+		s.log.WithError(err).Error("Failed to query")
 		return nil
 	}
 
@@ -57,7 +57,7 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 	}()
 
 	if rows.Err() != nil {
-		s.log.WithError(rows.Err()).Error("failed to query")
+		s.log.WithError(rows.Err()).Error("Failed to query")
 		return nil
 	}
 
@@ -66,7 +66,7 @@ func (s Storage) GetAllGauges(ctx context.Context) storage.Gauges {
 		var m modelGauge
 		err = rows.Scan(&m.ID, &m.Value)
 		if err != nil {
-			s.log.WithError(err).Error("failed to scan")
+			s.log.WithError(err).Error("Failed to scan")
 			return nil
 		}
 
@@ -85,7 +85,7 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 	query := `SELECT id, value FROM counter_metrics ORDER BY id`
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return nil
 	}
 	defer func() {
@@ -94,7 +94,7 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 
 	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
-		s.log.WithError(err).Error("failed to query")
+		s.log.WithError(err).Error("Failed to query")
 		return nil
 	}
 
@@ -103,7 +103,7 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 	}()
 
 	if rows.Err() != nil {
-		s.log.WithError(rows.Err()).Error("failed to query")
+		s.log.WithError(rows.Err()).Error("Failed to query")
 		return nil
 	}
 
@@ -112,7 +112,7 @@ func (s Storage) GetAllCounters(ctx context.Context) storage.Counters {
 		var model modelCounter
 		err = rows.Scan(&model.ID, &model.Value)
 		if err != nil {
-			s.log.WithError(err).Error("failed to scan")
+			s.log.WithError(err).Error("Failed to scan")
 			return nil
 		}
 
@@ -131,7 +131,7 @@ func (s Storage) GetGauge(ctx context.Context, id string) (float64, error) {
 	query := `SELECT id, value FROM gauge_metrics WHERE id = $1`
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return 0, err
 	}
 	defer func() {
@@ -146,7 +146,7 @@ func (s Storage) GetGauge(ctx context.Context, id string) (float64, error) {
 			return 0, storage.NewMetricNotFoundError(model.TypeGauge, id, err)
 		}
 
-		s.log.WithError(err).Error("failed to scan")
+		s.log.WithError(err).Error("Failed to scan")
 		return 0, err
 	}
 
@@ -162,7 +162,7 @@ func (s Storage) SetGauge(ctx context.Context, id string, value float64) {
 
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return
 	}
 	defer func() {
@@ -171,7 +171,7 @@ func (s Storage) SetGauge(ctx context.Context, id string, value float64) {
 
 	_, err = stmt.ExecContext(ctx, id, value)
 	if err != nil {
-		s.log.WithError(err).Error("error setting gauge")
+		s.log.WithError(err).Error("Error setting gauge")
 		return
 	}
 }
@@ -202,7 +202,7 @@ func (s Storage) SetGauges(ctx context.Context, gauges []storage.Gauge) error {
 
 	_, err := s.db.NamedExecContext(ctx, query, rows)
 	if err != nil {
-		s.log.WithError(err).Error("error setting gauges")
+		s.log.WithError(err).Error("Error setting gauges")
 		return err
 	}
 
@@ -213,7 +213,7 @@ func (s Storage) GetCounter(ctx context.Context, id string) (int64, error) {
 	query := `SELECT id, value FROM counter_metrics WHERE id = $1`
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return 0, err
 	}
 	defer func() {
@@ -228,7 +228,7 @@ func (s Storage) GetCounter(ctx context.Context, id string) (int64, error) {
 			return 0, storage.NewMetricNotFoundError(model.TypeCounter, id, err)
 		}
 
-		s.log.WithError(err).Error("failed to scan")
+		s.log.WithError(err).Error("Failed to scan")
 		return 0, err
 	}
 
@@ -244,7 +244,7 @@ func (s Storage) AddCounter(ctx context.Context, id string, value int64) {
 
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		s.log.WithError(err).Error("failed to prepare query")
+		s.log.WithError(err).Error("Failed to prepare query")
 		return
 	}
 	defer func() {
@@ -253,7 +253,7 @@ func (s Storage) AddCounter(ctx context.Context, id string, value int64) {
 
 	_, err = stmt.ExecContext(ctx, id, value)
 	if err != nil {
-		s.log.WithError(err).Error("error setting gauge")
+		s.log.WithError(err).Error("Error setting gauge")
 		return
 	}
 }
@@ -290,7 +290,7 @@ func (s Storage) AddCounters(ctx context.Context, counters []storage.Counter) er
 
 	_, err := s.db.NamedExecContext(ctx, query, rows)
 	if err != nil {
-		s.log.WithError(err).Error("error setting counters")
+		s.log.WithError(err).Error("Error setting counters")
 		return err
 	}
 

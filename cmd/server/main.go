@@ -30,12 +30,27 @@ func main() {
 	parseFlags()
 	parseEnvs()
 
-	if err := run(); err != nil {
+	log, err := logger.NewZapLog(logLevel)
+	if err != nil {
+		nativLog.Fatalln(err)
+	}
+	defer func() {
+		_ = log.Close()
+	}()
+
+	log.WithField("address", addr.String()).Info("Starting server")
+	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
+	log.Info(fmt.Sprintf("Store interval %s", storeInterval))
+	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath))
+	log.Info(fmt.Sprintf("Restore metrics %v", restore))
+
+	if err := run(log); err != nil {
+		log.WithError(err).Error("Error running server")
 		nativLog.Fatalln(err)
 	}
 }
 
-func run() error {
+func run(log logger.Logger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -45,20 +60,6 @@ func run() error {
 		<-c
 		cancel()
 	}()
-
-	log, err := logger.NewZapLog(logLevel)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = log.Close()
-	}()
-
-	log.WithField("address", addr.String()).Info("started server")
-	log.Info(fmt.Sprintf("log level '%s'", logLevel))
-	log.Info(fmt.Sprintf("store interval %s", storeInterval))
-	log.Info(fmt.Sprintf("file storage path '%s'", fileStoragePath))
-	log.Info(fmt.Sprintf("restore metrics %v", restore))
 
 	db := initDB(databaseDSN, log)
 
@@ -71,18 +72,17 @@ func run() error {
 
 	backupStore, err := file.NewStorage(fileStoragePath)
 	if err != nil {
-		log.WithField("error", err.Error()).Error("failed to create file storage")
+		log.WithError(err).Error("Failed to create file storage")
 		return err
 	}
 
 	if restore {
 		err := restoreData(ctx, backupStore, store)
 		if err != nil {
-			log.WithField("error", err.Error()).
-				Error("failed to load backup data")
+			log.WithError(err).Error("Failed to load backup data")
 		}
 
-		log.Info("backup loaded")
+		log.Info("Backup loaded")
 	}
 
 	var (
@@ -113,7 +113,7 @@ func run() error {
 	g.Go(func() error {
 		<-gCtx.Done()
 
-		log.Info("graceful shutting down server")
+		log.Info("Graceful shutting down server")
 		asyncBackupCreator.Stop(ctx)
 		return httpServer.Shutdown(context.Background())
 	})

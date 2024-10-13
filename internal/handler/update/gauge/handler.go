@@ -24,7 +24,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	valueMetric := r.PathValue("value")
 
 	if nameMetric == "" {
-		h.log.Info("metric name not specified")
+		h.log.Info("Metric name not specified")
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}

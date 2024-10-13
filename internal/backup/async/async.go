@@ -37,8 +37,7 @@ func (b *Backup) Start(ctx context.Context) {
 			if b.needUpdate {
 				err := b.update(ctx)
 				if err != nil {
-					b.log.WithField("error", err.Error()).
-						Error("failed to update backup")
+					b.log.WithError(err).Error("Failed to update backup")
 				}
 
 				b.needUpdate = false
@@ -54,11 +53,10 @@ func (b *Backup) Stop(ctx context.Context) {
 
 	err := b.update(ctx)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to update backup while stopping")
+		b.log.WithError(err).Error("Failed to update backup while stopping")
 	}
 
-	b.log.Info("backup stopped")
+	b.log.Info("Backup stopped")
 }
 
 func (b *Backup) Create(_ context.Context) error {
@@ -91,8 +89,7 @@ func (b *Backup) update(ctx context.Context) error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to backup data")
+		b.log.WithError(err).Error("Failed to backup data")
 		return err
 	}
 

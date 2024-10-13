@@ -47,8 +47,7 @@ func (b *Backup) Create(ctx context.Context) error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to backup data")
+		b.log.WithError(err).Error("Failed to backup data")
 		return err
 	}
 

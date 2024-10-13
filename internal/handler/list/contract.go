@@ -21,5 +21,6 @@ type repo interface {
 
 type log interface {
 	WithField(key string, value interface{}) logger.Logger
+	WithError(err error) logger.Logger
 	Error(msg string)
 }
