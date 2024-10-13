@@ -21,7 +21,7 @@ func TestMetric_Kind(t *testing.T) {
 		{
 			name: "integer",
 			fields: fields{
-				kind:  "kind",
+				kind:  "mType",
 				name:  "name",
 				value: 1,
 			},
@@ -29,7 +29,7 @@ func TestMetric_Kind(t *testing.T) {
 		{
 			name: "float",
 			fields: fields{
-				kind:  "kind",
+				kind:  "mType",
 				name:  "name",
 				value: 1.1,
 			},
