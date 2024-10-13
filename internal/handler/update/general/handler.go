@@ -2,7 +2,9 @@ package general
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -31,7 +33,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("error reading request body")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	defer func() {
@@ -42,39 +44,33 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) || errors.Is(err, model.ErrInvalidValue) {
+			h.log.Info(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusNotFound)
+			return
+		}
+
 		h.log.WithField("error", err.Error()).
 			Error("Unmarshal error")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	if in.ID == "" {
-		h.log.Info("Metric ID not specified")
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	if !in.IsValid() {
-		h.log.Info("Metric type is invalid")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	err = h.saveMetric(in)
+	err = h.saveMetric(r.Context(), in)
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to save metric")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.backup.Create()
+	err = h.backup.Create(r.Context())
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to backup data")
 	}
 
-	data, err := h.getResponseData(in)
+	data, err := h.getResponseData(r.Context(), in)
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Failed to get response data")
@@ -90,27 +86,27 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) saveMetric(request model.UpdateIn) error {
-	switch request.MType {
+func (h *Handler) saveMetric(ctx context.Context, in model.UpdateIn) error {
+	switch in.MType {
 	case model.TypeCounter:
-		h.repo.AddCounter(request.ID, *request.Delta)
+		h.repo.AddCounter(ctx, in.ID, *in.Delta)
 	case model.TypeGauge:
-		h.repo.SetGauge(request.ID, *request.Value)
+		h.repo.SetGauge(ctx, in.ID, *in.Value)
 	default:
-		return fmt.Errorf("unknown metric type: %s", request.MType)
+		return fmt.Errorf("unknown metric type: %s", in.MType)
 	}
 
 	return nil
 }
 
-func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
+func (h *Handler) getResponseData(ctx context.Context, request model.UpdateIn) ([]byte, error) {
 	out := &model.UpdateOut{
 		ID:    request.ID,
 		MType: request.MType,
 	}
 
 	if request.IsGauge() {
-		value, err := h.repo.GetGauge(request.ID)
+		value, err := h.repo.GetGauge(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +114,7 @@ func (h *Handler) getResponseData(request model.UpdateIn) ([]byte, error) {
 	}
 
 	if request.IsCounter() {
-		value, err := h.repo.GetCounter(request.ID)
+		value, err := h.repo.GetCounter(ctx, request.ID)
 		if err != nil {
 			return nil, err
 		}

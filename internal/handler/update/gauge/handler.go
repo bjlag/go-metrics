@@ -24,7 +24,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	valueMetric := r.PathValue("value")
 
 	if nameMetric == "" {
-		h.log.Info("metric name not specified")
+		h.log.Info("Metric name not specified")
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
@@ -36,9 +36,9 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.repo.SetGauge(nameMetric, value)
+	h.repo.SetGauge(r.Context(), nameMetric, value)
 
-	err = h.backup.Create()
+	err = h.backup.Create(r.Context())
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("failed to backup data")

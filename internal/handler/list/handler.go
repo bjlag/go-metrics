@@ -24,21 +24,20 @@ func NewHandler(renderer renderer, repo repo, log log) *Handler {
 	}
 }
 
-func (h Handler) Handle(w http.ResponseWriter, _ *http.Request) {
+func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Title    string
 		Gauges   storage.Gauges
 		Counters storage.Counters
 	}{
 		Title:    "Список метрик",
-		Gauges:   h.repo.GetAllGauges(),
-		Counters: h.repo.GetAllCounters(),
+		Gauges:   h.repo.GetAllGauges(r.Context()),
+		Counters: h.repo.GetAllCounters(r.Context()),
 	}
 
 	err := h.renderer.Render(w, "list.html", data)
 	if err != nil {
-		h.log.WithField("err", err.Error()).
-			Error("failed to render list.html")
+		h.log.WithError(err).Error("Failed to render list.html")
 		http.Error(w, writeBodyMsgErr, http.StatusInternalServerError)
 	}
 }

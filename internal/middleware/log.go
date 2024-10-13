@@ -32,7 +32,7 @@ func (m LogRequest) Handle(next http.Handler) http.Handler {
 			WithField("duration", duration).
 			WithField("status", dw.data.status).
 			WithField("size", dw.data.size).
-			Info("got request")
+			Info("Got request")
 	})
 }
 

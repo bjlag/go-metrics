@@ -1,19 +1,21 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
-	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 type Backup struct {
-	storage  *memory.Storage
+	storage  storage.Repository
 	fStorage *file.Storage
 	log      logger.Logger
 }
 
-func New(storage *memory.Storage, fStorage *file.Storage, log logger.Logger) *Backup {
+func New(storage storage.Repository, fStorage *file.Storage, log logger.Logger) *Backup {
 	return &Backup{
 		storage:  storage,
 		fStorage: fStorage,
@@ -21,9 +23,9 @@ func New(storage *memory.Storage, fStorage *file.Storage, log logger.Logger) *Ba
 	}
 }
 
-func (b *Backup) Create() error {
-	counters := b.storage.GetAllCounters()
-	gauges := b.storage.GetAllGauges()
+func (b *Backup) Create(ctx context.Context) error {
+	counters := b.storage.GetAllCounters(ctx)
+	gauges := b.storage.GetAllGauges(ctx)
 
 	data := make([]file.Metric, 0, len(counters)+len(gauges))
 
@@ -45,8 +47,7 @@ func (b *Backup) Create() error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to backup data")
+		b.log.WithError(err).Error("Failed to backup data")
 		return err
 	}
 
