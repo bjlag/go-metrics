@@ -3,9 +3,6 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -14,6 +11,7 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/signature"
 )
 
 const (
@@ -28,11 +26,12 @@ const (
 
 type MetricSender struct {
 	client  *resty.Client
+	sign    *signature.SignManager
 	baseURL string
 	log     log
 }
 
-func NewHTTPSender(host string, port int, log log) *MetricSender {
+func NewHTTPSender(host string, port int, sign *signature.SignManager, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -41,6 +40,7 @@ func NewHTTPSender(host string, port int, log log) *MetricSender {
 
 	return &MetricSender{
 		client:  client,
+		sign:    sign,
 		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
 		log:     log,
 	}
@@ -79,10 +79,6 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		return fmt.Errorf("failed to marshal metric: %s", err)
 	}
 
-	h := hmac.New(sha256.New, []byte("secretkey"))
-	h.Write(jsonb)
-	hash := h.Sum(nil)
-
 	compressed, err := compress(jsonb)
 	if err != nil {
 		return err
@@ -93,7 +89,7 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
-		SetHeader("HashSHA256", hex.EncodeToString(hash)).
+		SetHeader("HashSHA256", s.sign.Sing(jsonb)).
 		SetBody(compressed)
 
 	response, err := request.Post(url)

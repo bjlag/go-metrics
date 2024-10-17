@@ -15,6 +15,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/signature"
 )
 
 func main() {
@@ -51,8 +52,9 @@ func run(log logger.Logger) error {
 		cancel()
 	}()
 
+	signManager := signature.NewSignManager(secretKey)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(addr.host, addr.port, log)
+	metricClient := client.NewHTTPSender(addr.host, addr.port, signManager, log)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()
