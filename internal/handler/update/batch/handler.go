@@ -3,6 +3,9 @@ package batch
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -39,9 +42,33 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
+	reqHash := r.Header.Get("HashSHA256")
+	if len(reqHash) == 0 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	agentHash, err := hex.DecodeString(reqHash)
+	if err != nil {
+		h.log.WithError(err).Error("Error decoding hash")
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	b := buf.Bytes()
+
+	hm := hmac.New(sha256.New, []byte("secretkey"))
+	hm.Write(b)
+	hash := hm.Sum(nil)
+
+	if !hmac.Equal(hash, agentHash) {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
 	var in []model.UpdateIn
 
-	err = json.Unmarshal(buf.Bytes(), &in)
+	err = json.Unmarshal(b, &in)
 	if err != nil {
 		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) || errors.Is(err, model.ErrInvalidValue) {
 			h.log.Info(err.Error())
@@ -65,6 +92,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.WithError(err).Error("Failed to backup data")
 	}
+
+	w.Header().Set("HashSHA256", hex.EncodeToString(hash))
 }
 
 func (h *Handler) saveMetric(ctx context.Context, in []model.UpdateIn) error {

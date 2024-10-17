@@ -3,6 +3,9 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -76,6 +79,10 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		return fmt.Errorf("failed to marshal metric: %s", err)
 	}
 
+	h := hmac.New(sha256.New, []byte("secretkey"))
+	h.Write(jsonb)
+	hash := h.Sum(nil)
+
 	compressed, err := compress(jsonb)
 	if err != nil {
 		return err
@@ -86,6 +93,7 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
+		SetHeader("HashSHA256", hex.EncodeToString(hash)).
 		SetBody(compressed)
 
 	response, err := request.Post(url)
