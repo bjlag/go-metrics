@@ -8,19 +8,29 @@ import (
 
 type SignManager struct {
 	secretKey []byte
+	enable    bool
 }
 
 func NewSignManager(secretKey string) *SignManager {
 	return &SignManager{
 		secretKey: []byte(secretKey),
+		enable:    len(secretKey) > 0,
 	}
 }
 
 func (m SignManager) Sing(data []byte) string {
+	if !m.enable {
+		return ""
+	}
+
 	return hex.EncodeToString(m.new(data))
 }
 
 func (m SignManager) Verify(data []byte, signature string) (bool, string) {
+	if !m.enable {
+		return false, ""
+	}
+
 	sign, err := hex.DecodeString(signature)
 	if err != nil {
 		return false, ""
@@ -29,6 +39,10 @@ func (m SignManager) Verify(data []byte, signature string) (bool, string) {
 	dataSign := m.new(data)
 
 	return hmac.Equal(dataSign, sign), hex.EncodeToString(dataSign)
+}
+
+func (m SignManager) Enable() bool {
+	return m.enable
 }
 
 func (m SignManager) new(data []byte) []byte {

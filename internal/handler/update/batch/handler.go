@@ -42,17 +42,22 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
-	reqSign := r.Header.Get("HashSHA256")
-	if len(reqSign) == 0 {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
 	body := buf.Bytes()
-	isEqual, respSign := h.sign.Verify(body, reqSign)
-	if !isEqual {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+
+	if h.sign.Enable() {
+		reqSign := r.Header.Get("HashSHA256")
+		if len(reqSign) == 0 {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		isValid, respSign := h.sign.Verify(body, reqSign)
+		if !isValid {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("HashSHA256", respSign)
 	}
 
 	var in []model.UpdateIn
@@ -81,8 +86,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.WithError(err).Error("Failed to backup data")
 	}
-
-	w.Header().Set("HashSHA256", respSign)
 }
 
 func (h *Handler) saveMetric(ctx context.Context, in []model.UpdateIn) error {

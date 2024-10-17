@@ -38,7 +38,6 @@ const (
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "data/metrics.json"
 	defaultRestore         = true
-	defaultSecretKey       = "secretkey"
 
 	envAddress         = "ADDRESS"
 	envDatabaseDSN     = "DATABASE_DSN"
@@ -81,7 +80,7 @@ func parseFlags() {
 	})
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
 	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
-	flag.StringVar(&secretKey, "k", defaultSecretKey, "Secret key")
+	flag.StringVar(&secretKey, "k", "", "Secret key")
 
 	flag.Parse()
 }

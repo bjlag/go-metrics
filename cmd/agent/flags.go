@@ -37,7 +37,6 @@ const (
 	defaultPoolInterval   = 2
 	defaultReportInterval = 10
 	defaultLogLevel       = "info"
-	defaultSecretKey      = "secretkey"
 
 	envAddressKey        = "ADDRESS"
 	envPollIntervalKey   = "POLL_INTERVAL"
@@ -84,7 +83,7 @@ func parseFlags() {
 		return nil
 	})
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
-	flag.StringVar(&secretKey, "k", defaultSecretKey, "Secret key")
+	flag.StringVar(&secretKey, "k", "", "Secret key")
 
 	flag.Parse()
 }

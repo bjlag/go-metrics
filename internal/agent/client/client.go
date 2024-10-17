@@ -89,8 +89,11 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
-		SetHeader("HashSHA256", s.sign.Sing(jsonb)).
 		SetBody(compressed)
+
+	if s.sign.Enable() {
+		request = request.SetHeader("HashSHA256", s.sign.Sing(jsonb))
+	}
 
 	response, err := request.Post(url)
 	if err != nil {
