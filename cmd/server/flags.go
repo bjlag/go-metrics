@@ -45,6 +45,7 @@ const (
 	envStoreInterval   = "STORE_INTERVAL"
 	envFileStoragePath = "FILE_STORAGE_PATH"
 	envRestore         = "RESTORE"
+	envSecretKey       = "KEY"
 )
 
 var (
@@ -58,6 +59,7 @@ var (
 	storeInterval   = defaultStoreInterval * time.Second
 	fileStoragePath string
 	restore         bool
+	secretKey       string
 )
 
 func parseFlags() {
@@ -78,6 +80,8 @@ func parseFlags() {
 	})
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
 	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
+	flag.StringVar(&secretKey, "k", "", "Secret key")
+
 	flag.Parse()
 }
 
@@ -115,6 +119,10 @@ func parseEnvs() {
 
 	if envRestoreValue := os.Getenv(envRestore); envRestoreValue != "" {
 		restore = true
+	}
+
+	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
+		secretKey = envSecretKeyValue
 	}
 }
 

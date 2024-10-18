@@ -19,10 +19,11 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -47,8 +48,12 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 
 	r.Route("/updates", func(r chi.Router) {
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		validateSignRequest := middleware.NewSignature(singManager, log).Handle
 
-		r.With(jsonContentType).Post("/", updateBatch.NewHandler(storage, backup, log).Handle)
+		r.
+			With(jsonContentType).
+			With(validateSignRequest).
+			Post("/", updateBatch.NewHandler(storage, backup, log).Handle)
 	})
 
 	r.Route("/value", func(r chi.Router) {

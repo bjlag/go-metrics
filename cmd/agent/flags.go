@@ -42,6 +42,7 @@ const (
 	envPollIntervalKey   = "POLL_INTERVAL"
 	envReportIntervalKey = "REPORT_INTERVAL"
 	envLogLevel          = "LOG_LEVEL"
+	envSecretKey         = "KEY"
 )
 
 var (
@@ -53,7 +54,8 @@ var (
 	pollInterval   = defaultPoolInterval * time.Second
 	reportInterval = defaultReportInterval * time.Second
 
-	logLevel string
+	logLevel  string
+	secretKey string
 )
 
 func parseFlags() {
@@ -81,6 +83,7 @@ func parseFlags() {
 		return nil
 	})
 	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
+	flag.StringVar(&secretKey, "k", "", "Secret key")
 
 	flag.Parse()
 }
@@ -118,6 +121,10 @@ func parseEnvs() {
 
 	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
 		logLevel = envLogLevelValue
+	}
+
+	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
+		secretKey = envSecretKeyValue
 	}
 }
 

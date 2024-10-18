@@ -16,6 +16,7 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
@@ -98,10 +99,11 @@ func run(log logger.Logger) error {
 		backupCreator = asyncBackupCreator
 	}
 
+	signManager := signature.NewSignManager(secretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, log),
+		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)

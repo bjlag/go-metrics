@@ -11,6 +11,7 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/signature"
 )
 
 const (
@@ -25,11 +26,12 @@ const (
 
 type MetricSender struct {
 	client  *resty.Client
+	sign    *signature.SignManager
 	baseURL string
 	log     log
 }
 
-func NewHTTPSender(host string, port int, log log) *MetricSender {
+func NewHTTPSender(host string, port int, sign *signature.SignManager, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -38,6 +40,7 @@ func NewHTTPSender(host string, port int, log log) *MetricSender {
 
 	return &MetricSender{
 		client:  client,
+		sign:    sign,
 		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
 		log:     log,
 	}
@@ -87,6 +90,10 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
 		SetBody(compressed)
+
+	if s.sign.Enable() {
+		request = request.SetHeader("HashSHA256", s.sign.Sing(jsonb))
+	}
 
 	response, err := request.Post(url)
 	if err != nil {
