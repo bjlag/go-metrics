@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/bjlag/go-metrics/internal/signature"
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
@@ -48,8 +48,12 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 
 	r.Route("/updates", func(r chi.Router) {
 		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
+		validateSignRequest := middleware.NewSignature(singManager, log).Handle
 
-		r.With(jsonContentType).Post("/", updateBatch.NewHandler(storage, singManager, backup, log).Handle)
+		r.
+			With(jsonContentType).
+			With(validateSignRequest).
+			Post("/", updateBatch.NewHandler(storage, backup, log).Handle)
 	})
 
 	r.Route("/value", func(r chi.Router) {

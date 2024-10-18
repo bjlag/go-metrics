@@ -8,21 +8,18 @@ import (
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/model"
-	"github.com/bjlag/go-metrics/internal/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type Handler struct {
 	repo   repo
-	sign   *signature.SignManager
 	backup backup
 	log    log
 }
 
-func NewHandler(repo repo, sign *signature.SignManager, backup backup, log log) *Handler {
+func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
 		repo:   repo,
-		sign:   sign,
 		backup: backup,
 		log:    log,
 	}
@@ -42,27 +39,9 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
-	body := buf.Bytes()
-
-	if h.sign.Enable() {
-		reqSign := r.Header.Get("HashSHA256")
-		if len(reqSign) == 0 {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		isValid, respSign := h.sign.Verify(body, reqSign)
-		if !isValid {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		w.Header().Set("HashSHA256", respSign)
-	}
-
 	var in []model.UpdateIn
 
-	err = json.Unmarshal(body, &in)
+	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
 		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) || errors.Is(err, model.ErrInvalidValue) {
 			h.log.Info(err.Error())
