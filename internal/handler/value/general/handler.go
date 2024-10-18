@@ -2,12 +2,13 @@ package general
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/model"
-	"github.com/bjlag/go-metrics/internal/storage/memory"
+	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type Handler struct {
@@ -30,7 +31,7 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.WithField("error", err.Error()).
 			Error("Error reading request body")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -38,27 +39,21 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(buf.Bytes(), &in)
 	if err != nil {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrInvalidType) {
+			h.log.Info(err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusNotFound)
+			return
+		}
+
 		h.log.WithField("error", err.Error()).
 			Error("Unmarshal error")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	if in.ID == "" {
-		h.log.Info("Metric ID not specified")
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	if !in.IsValid() {
-		h.log.Info("Metric type is invalid")
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	data, err := h.getResponseData(in)
+	data, err := h.getResponseData(r.Context(), in)
 	if err != nil {
-		var metricNotFoundError *memory.MetricNotFoundError
+		var metricNotFoundError *storage.NotFoundError
 		if errors.As(err, &metricNotFoundError) {
 			h.log.WithField("type", in.MType).
 				WithField("id", in.ID).
@@ -81,22 +76,22 @@ func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) getResponseData(request model.ValueIn) ([]byte, error) {
+func (h Handler) getResponseData(ctx context.Context, in model.ValueIn) ([]byte, error) {
 	out := &model.ValueOut{
-		ID:    request.ID,
-		MType: request.MType,
+		ID:    in.ID,
+		MType: in.MType,
 	}
 
-	if request.IsGauge() {
-		value, err := h.repo.GetGauge(request.ID)
+	if in.IsGauge() {
+		value, err := h.repo.GetGauge(ctx, in.ID)
 		if err != nil {
 			return nil, err
 		}
 		out.Value = &value
 	}
 
-	if request.IsCounter() {
-		value, err := h.repo.GetCounter(request.ID)
+	if in.IsCounter() {
+		value, err := h.repo.GetCounter(ctx, in.ID)
 		if err != nil {
 			return nil, err
 		}

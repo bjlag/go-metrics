@@ -18,12 +18,29 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	parseFlags()
+	parseEnvs()
+
+	log, err := logger.NewZapLog(logLevel)
+	if err != nil {
 		logNativ.Fatalln(err)
+	}
+	defer func() {
+		_ = log.Close()
+	}()
+
+	log.Info("Starting agent")
+	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()))
+	log.Info(fmt.Sprintf("Poll interval %s", pollInterval))
+	log.Info(fmt.Sprintf("Report interval %s", reportInterval))
+	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
+
+	if err := run(log); err != nil {
+		log.WithError(err).Error("Error running agent")
 	}
 }
 
-func run() error {
+func run(log logger.Logger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -34,25 +51,8 @@ func run() error {
 		cancel()
 	}()
 
-	parseFlags()
-	parseEnvs()
-
-	log, err := logger.NewZapLog(logLevel)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = log.Close()
-	}()
-
-	log.Info("starting agent")
-	log.Info(fmt.Sprintf("sending metrics to %s", addr.String()))
-	log.Info(fmt.Sprintf("poll interval %s", pollInterval))
-	log.Info(fmt.Sprintf("report interval %s", reportInterval))
-	log.Info(fmt.Sprintf("log level '%s'", logLevel))
-
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(addr.host, addr.port)
+	metricClient := client.NewHTTPSender(addr.host, addr.port, log)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()
@@ -64,65 +64,43 @@ func run() error {
 	go func() {
 		<-ctx.Done()
 
-		log.Info("graceful shutting down agent")
+		log.Info("Graceful shutting down agent")
 	}()
 
 	g.Go(func() error {
 		for {
 			select {
 			case <-gCtx.Done():
-				log.Info("stopped read stats")
+				log.Info("Stopped read stats")
 				return nil
 			case <-pollTicker.C:
 				metricCollector.ReadStats()
 
-				response, err := metricClient.Send(collector.NewMetric(collector.Counter, "PollCount", 1))
-				if err != nil {
-					log.WithField("error", err.Error()).
-						Error("error in sending metric")
-					continue
+				metrics := []*collector.Metric{
+					collector.NewCounterMetric("PollCount", 1),
 				}
 
-				log.WithField("uri", response.Request.URL).
-					WithField("response", string(response.Body())).
-					WithField("status", response.StatusCode()).
-					Info("sent request")
+				if err := metricClient.Send(metrics); err != nil {
+					log.WithError(err).Error("Error in sending poll count")
+				}
 			}
 		}
 	})
 
 	g.Go(func() error {
-		gr, _ := errgroup.WithContext(ctx)
-
 		for {
 			select {
 			case <-gCtx.Done():
-				log.Info("stopped send metrics")
+				log.Info("Stopped send metrics")
 				return nil
 			case <-reportTicker.C:
-				for _, metric := range metricCollector.Collect() {
-					gr.Go(func() error {
-						select {
-						case <-gCtx.Done():
-							return nil
-						default:
-							response, err := metricClient.Send(metric)
-							if err != nil {
-								return err
-							}
-
-							log.WithField("uri", response.Request.URL).
-								WithField("response", string(response.Body())).
-								WithField("status", response.StatusCode()).
-								Info("sent request")
-						}
-
-						return nil
-					})
+				metrics := metricCollector.Collect()
+				if len(metrics) == 0 {
+					continue
 				}
 
-				if err := gr.Wait(); err != nil {
-					log.Error(err.Error())
+				if err := metricClient.Send(metrics); err != nil {
+					log.WithError(err).Error("Error in sending report")
 				}
 			}
 		}

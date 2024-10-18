@@ -70,6 +70,20 @@ func (mr *MockLoggerMockRecorder) Info(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLogger)(nil).Info), arg0)
 }
 
+// WithError mocks base method.
+func (m *MockLogger) WithError(arg0 error) logger.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithError", arg0)
+	ret0, _ := ret[0].(logger.Logger)
+	return ret0
+}
+
+// WithError indicates an expected call of WithError.
+func (mr *MockLoggerMockRecorder) WithError(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithError", reflect.TypeOf((*MockLogger)(nil).WithError), arg0)
+}
+
 // WithField mocks base method.
 func (m *MockLogger) WithField(arg0 string, arg1 interface{}) logger.Logger {
 	m.ctrl.T.Helper()

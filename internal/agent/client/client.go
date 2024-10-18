@@ -15,61 +15,70 @@ import (
 
 const (
 	baseURLTemplate = "http://%s:%d"
-	urlTemplate     = "%s/update/"
+	urlTemplate     = "%s/updates/"
 
-	timeout       = 100 * time.Millisecond
-	maxRetries    = 2
-	retryWaitTime = 500 * time.Millisecond
+	timeout          = 100 * time.Millisecond
+	maxRetries       = 3
+	retryWaitTime    = 200 * time.Millisecond
+	retryMaxWaitTime = 500 * time.Millisecond
 )
 
 type MetricSender struct {
 	client  *resty.Client
 	baseURL string
+	log     log
 }
 
-func NewHTTPSender(host string, port int) *MetricSender {
+func NewHTTPSender(host string, port int, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
 	client.SetRetryWaitTime(retryWaitTime)
+	client.SetRetryMaxWaitTime(retryMaxWaitTime)
 
 	return &MetricSender{
 		client:  client,
 		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
+		log:     log,
 	}
 }
 
-func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
-	in := &model.UpdateIn{
-		ID:    metric.Name(),
-		MType: metric.Kind(),
+func (s MetricSender) Send(metrics []*collector.Metric) error {
+	req := make([]model.UpdateIn, 0, len(metrics))
+	for _, m := range metrics {
+		in := model.UpdateIn{
+			ID:    m.Name(),
+			MType: m.Kind(),
+		}
+
+		switch m.Kind() {
+		case collector.Gauge:
+			value, err := m.GaugeValue()
+			if err != nil {
+				return err
+			}
+			in.Value = &value
+		case collector.Counter:
+			value, err := m.CounterValue()
+			if err != nil {
+				return err
+			}
+			in.Delta = &value
+		default:
+			continue
+		}
+
+		req = append(req, in)
 	}
 
-	switch metric.Kind() {
-	case collector.Gauge:
-		value, err := metric.GaugeValue()
-		if err != nil {
-			return nil, err
-		}
-		in.Value = &value
-	case collector.Counter:
-		value, err := metric.CounterValue()
-		if err != nil {
-			return nil, err
-		}
-		in.Delta = &value
-	default:
-		return nil, fmt.Errorf("unknown metric kind: %s", metric.Kind())
-	}
-
-	jsonb, err := json.Marshal(in)
+	jsonb, err := json.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal metric: %s", err)
+		return fmt.Errorf("failed to marshal metric: %s", err)
 	}
 
 	compressed, err := compress(jsonb)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	url := fmt.Sprintf(urlTemplate, s.baseURL)
@@ -81,10 +90,15 @@ func (s MetricSender) Send(metric *collector.Metric) (*resty.Response, error) {
 
 	response, err := request.Post(url)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request to '%s', error %v", url, err)
+		return fmt.Errorf("error sending request to '%s', error %v", url, err)
 	}
 
-	return response, nil
+	s.log.WithField("uri", response.Request.URL).
+		WithField("response", string(response.Body())).
+		WithField("status", response.StatusCode()).
+		Info("sent request")
+
+	return nil
 }
 
 func compress(src []byte) ([]byte, error) {

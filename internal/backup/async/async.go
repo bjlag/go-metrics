@@ -1,16 +1,17 @@
 package async
 
 import (
+	"context"
 	"time"
 
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
-	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 
 type Backup struct {
-	storage  *memory.Storage
+	storage  storage.Repository
 	fStorage *file.Storage
 	interval time.Duration
 	log      logger.Logger
@@ -19,7 +20,7 @@ type Backup struct {
 	needUpdate bool
 }
 
-func New(storage *memory.Storage, fStorage *file.Storage, interval time.Duration, log logger.Logger) *Backup {
+func New(storage storage.Repository, fStorage *file.Storage, interval time.Duration, log logger.Logger) *Backup {
 	return &Backup{
 		storage:  storage,
 		fStorage: fStorage,
@@ -28,16 +29,15 @@ func New(storage *memory.Storage, fStorage *file.Storage, interval time.Duration
 	}
 }
 
-func (b *Backup) Start() {
+func (b *Backup) Start(ctx context.Context) {
 	b.ticker = time.NewTicker(b.interval)
 
 	go func() {
 		for range b.ticker.C {
 			if b.needUpdate {
-				err := b.update()
+				err := b.update(ctx)
 				if err != nil {
-					b.log.WithField("error", err.Error()).
-						Error("failed to update backup")
+					b.log.WithError(err).Error("Failed to update backup")
 				}
 
 				b.needUpdate = false
@@ -48,27 +48,26 @@ func (b *Backup) Start() {
 	b.log.Info("async backup started")
 }
 
-func (b *Backup) Stop() {
+func (b *Backup) Stop(ctx context.Context) {
 	b.ticker.Stop()
 
-	err := b.update()
+	err := b.update(ctx)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to update backup while stopping")
+		b.log.WithError(err).Error("Failed to update backup while stopping")
 	}
 
-	b.log.Info("backup stopped")
+	b.log.Info("Backup stopped")
 }
 
-func (b *Backup) Create() error {
+func (b *Backup) Create(_ context.Context) error {
 	b.needUpdate = true
 
 	return nil
 }
 
-func (b *Backup) update() error {
-	counters := b.storage.GetAllCounters()
-	gauges := b.storage.GetAllGauges()
+func (b *Backup) update(ctx context.Context) error {
+	counters := b.storage.GetAllCounters(ctx)
+	gauges := b.storage.GetAllGauges(ctx)
 
 	data := make([]file.Metric, 0, len(counters)+len(gauges))
 
@@ -90,8 +89,7 @@ func (b *Backup) update() error {
 
 	err := b.fStorage.Save(data)
 	if err != nil {
-		b.log.WithField("error", err.Error()).
-			Error("failed to backup data")
+		b.log.WithError(err).Error("Failed to backup data")
 		return err
 	}
 

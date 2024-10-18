@@ -11,21 +11,29 @@ const (
 )
 
 type Metric struct {
-	kind  string
+	mType string
 	name  string
 	value interface{}
 }
 
-func NewMetric(kind string, name string, value interface{}) *Metric {
+func NewMetric(mType string, name string, value interface{}) *Metric {
 	return &Metric{
-		kind:  kind,
+		mType: mType,
 		name:  name,
 		value: value,
 	}
 }
 
+func NewCounterMetric(name string, value interface{}) *Metric {
+	return NewMetric(Counter, name, value)
+}
+
+func NewGaugeMetric(name string, value interface{}) *Metric {
+	return NewMetric(Gauge, name, value)
+}
+
 func (m Metric) Kind() string {
-	return m.kind
+	return m.mType
 }
 
 func (m Metric) Name() string {

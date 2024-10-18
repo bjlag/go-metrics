@@ -26,8 +26,7 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 		if isRequestSupportedCompress(r) {
 			zr, err := newGzipReader(r.Body)
 			if err != nil {
-				m.log.WithField("error", err.Error()).
-					Error("error creating gzip reader")
+				m.log.WithError(err).Error("Error creating gzip reader")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -38,8 +37,7 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			zw, err := newGzipWriter(w)
 			if err != nil {
-				m.log.WithField("error", err.Error()).
-					Error("error creating gzip writer")
+				m.log.WithError(err).Error("Error creating gzip writer")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -47,8 +45,7 @@ func (m *Gzip) Handle(next http.Handler) http.Handler {
 			defer func() {
 				err = zw.Close()
 				if err != nil {
-					m.log.WithField("error", err.Error()).
-						Error("failed to close gzip writer")
+					m.log.WithError(err).Error("Failed to close gzip writer")
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 			}()
