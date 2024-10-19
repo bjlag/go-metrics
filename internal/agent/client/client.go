@@ -10,6 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/signature"
 )
@@ -27,11 +28,12 @@ const (
 type MetricSender struct {
 	client  *resty.Client
 	sign    *signature.SignManager
+	limiter *limiter.RateLimiter
 	baseURL string
 	log     log
 }
 
-func NewHTTPSender(host string, port int, sign *signature.SignManager, log log) *MetricSender {
+func NewHTTPSender(host string, port int, sign *signature.SignManager, limiter *limiter.RateLimiter, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -41,6 +43,7 @@ func NewHTTPSender(host string, port int, sign *signature.SignManager, log log) 
 	return &MetricSender{
 		client:  client,
 		sign:    sign,
+		limiter: limiter,
 		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
 		log:     log,
 	}
@@ -94,6 +97,9 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 	if s.sign.Enable() {
 		request = request.SetHeader("HashSHA256", s.sign.Sing(jsonb))
 	}
+
+	s.limiter.Acquire()
+	defer s.limiter.Release()
 
 	response, err := request.Post(url)
 	if err != nil {
