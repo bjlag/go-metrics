@@ -37,12 +37,14 @@ const (
 	defaultPoolInterval   = 2
 	defaultReportInterval = 10
 	defaultLogLevel       = "info"
+	defaultRateLimit      = 10
 
 	envAddressKey        = "ADDRESS"
 	envPollIntervalKey   = "POLL_INTERVAL"
 	envReportIntervalKey = "REPORT_INTERVAL"
 	envLogLevel          = "LOG_LEVEL"
 	envSecretKey         = "KEY"
+	envRateLimitKey      = "RATE_LIMIT"
 )
 
 var (
@@ -56,6 +58,7 @@ var (
 
 	logLevel  string
 	secretKey string
+	rateLimit int
 )
 
 func parseFlags() {
@@ -82,8 +85,9 @@ func parseFlags() {
 
 		return nil
 	})
-	flag.StringVar(&logLevel, "l", defaultLogLevel, "Log level")
+	flag.StringVar(&logLevel, "log", defaultLogLevel, "Log level")
 	flag.StringVar(&secretKey, "k", "", "Secret key")
+	flag.IntVar(&rateLimit, "l", defaultRateLimit, "Rate limit")
 
 	flag.Parse()
 }
@@ -125,6 +129,13 @@ func parseEnvs() {
 
 	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
 		secretKey = envSecretKeyValue
+	}
+
+	if envRateLimitValue := os.Getenv(envRateLimitKey); envRateLimitValue != "" {
+		rateLimit, err = strconv.Atoi(envRateLimitValue)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
