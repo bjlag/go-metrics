@@ -48,6 +48,8 @@ func (m Metric) GaugeValue() (float64, error) {
 	switch v := m.value.(type) {
 	case float64:
 		return v, nil
+	case int:
+		return float64(v), nil
 	case int64:
 		return float64(v), nil
 	case uint64:

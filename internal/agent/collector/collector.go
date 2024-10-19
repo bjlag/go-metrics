@@ -3,6 +3,9 @@ package collector
 import (
 	"math/rand"
 	"runtime"
+
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 )
 
 type MetricCollector struct {
@@ -19,7 +22,17 @@ func (c MetricCollector) ReadStats() {
 	runtime.ReadMemStats(c.rtm)
 }
 
-func (c MetricCollector) Collect() []*Metric {
+func (c MetricCollector) Collect() ([]*Metric, error) {
+	memStat, err := mem.VirtualMemory()
+	if err != nil {
+		return nil, err
+	}
+
+	cpuCount, err := cpu.Counts(true)
+	if err != nil {
+		return nil, err
+	}
+
 	return []*Metric{
 		NewGaugeMetric("Alloc", c.rtm.Alloc),
 		NewGaugeMetric("TotalAlloc", c.rtm.TotalAlloc),
@@ -48,8 +61,11 @@ func (c MetricCollector) Collect() []*Metric {
 		NewGaugeMetric("StackInuse", c.rtm.StackInuse),
 		NewGaugeMetric("StackSys", c.rtm.StackSys),
 		NewGaugeMetric("Sys", c.rtm.Sys),
+		NewGaugeMetric("FreeMemory", memStat.Free),
+		NewGaugeMetric("TotalMemory", memStat.Total),
+		NewGaugeMetric("CPUutilization1", cpuCount),
 		NewGaugeMetric("RandomValue", getRandomFloat(1, 100)),
-	}
+	}, nil
 }
 
 func getRandomFloat(min, max float64) float64 {

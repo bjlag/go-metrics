@@ -1,10 +1,12 @@
 package collector_test
 
 import (
-	"github.com/bjlag/go-metrics/internal/agent/collector"
-	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/bjlag/go-metrics/internal/agent/collector"
 )
 
 func TestMetricCollector_Collect(t *testing.T) {
@@ -39,7 +41,8 @@ func TestMetricCollector_Collect(t *testing.T) {
 	}
 
 	c := collector.NewMetricCollector(rtm)
-	metrics := c.Collect()
+	metrics, err := c.Collect()
+	assert.NoError(t, err)
 
 	assert.Equal(t, collector.NewMetric("gauge", "Alloc", uint64(1)), metrics[0])
 	assert.Equal(t, collector.NewMetric("gauge", "TotalAlloc", uint64(2)), metrics[1])

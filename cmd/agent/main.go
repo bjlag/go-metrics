@@ -100,7 +100,11 @@ func run(log logger.Logger) error {
 				log.Info("Stopped send metrics")
 				return nil
 			case <-reportTicker.C:
-				metrics := metricCollector.Collect()
+				metrics, err := metricCollector.Collect()
+				if err != nil {
+					log.WithError(err).Error("Error in getting metrics")
+				}
+
 				if len(metrics) == 0 {
 					continue
 				}
