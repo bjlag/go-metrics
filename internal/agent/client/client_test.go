@@ -15,7 +15,9 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/client/mock"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/signature"
 )
 
 func TestMetricSender_Send(t *testing.T) {
@@ -131,7 +133,13 @@ func TestMetricSender_Send(t *testing.T) {
 			parts := strings.Split(tt.server.Listener.Addr().String(), ":")
 			port, _ := strconv.Atoi(parts[1])
 
-			c := client.NewHTTPSender(parts[0], port, tt.log(ctrl))
+			c := client.NewHTTPSender(
+				parts[0],
+				port,
+				signature.NewSignManager("secretKey"),
+				limiter.NewRateLimiter(1),
+				tt.log(ctrl),
+			)
 
 			err := c.Send(tt.args.metric)
 

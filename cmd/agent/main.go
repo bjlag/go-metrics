@@ -14,7 +14,9 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/signature"
 )
 
 func main() {
@@ -31,9 +33,11 @@ func main() {
 
 	log.Info("Starting agent")
 	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()))
-	log.Info(fmt.Sprintf("Poll interval %s", pollInterval))
-	log.Info(fmt.Sprintf("Report interval %s", reportInterval))
-	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
+	log.Info(fmt.Sprintf("Poll interval is %s", pollInterval))
+	log.Info(fmt.Sprintf("Report interval is %s", reportInterval))
+	log.Info(fmt.Sprintf("Log level is '%s'", logLevel))
+	log.Info(fmt.Sprintf("Sign request is %t", len(secretKey) > 0))
+	log.Info(fmt.Sprintf("Rate limit is %d", rateLimit))
 
 	if err := run(log); err != nil {
 		log.WithError(err).Error("Error running agent")
@@ -51,8 +55,10 @@ func run(log logger.Logger) error {
 		cancel()
 	}()
 
+	signManager := signature.NewSignManager(secretKey)
+	rateLimiter := limiter.NewRateLimiter(rateLimit)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(addr.host, addr.port, log)
+	metricClient := client.NewHTTPSender(addr.host, addr.port, signManager, rateLimiter, log)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()
@@ -94,7 +100,11 @@ func run(log logger.Logger) error {
 				log.Info("Stopped send metrics")
 				return nil
 			case <-reportTicker.C:
-				metrics := metricCollector.Collect()
+				metrics, err := metricCollector.Collect()
+				if err != nil {
+					log.WithError(err).Error("Error in getting metrics")
+				}
+
 				if len(metrics) == 0 {
 					continue
 				}
