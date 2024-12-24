@@ -1,3 +1,4 @@
+// HTTP клиент для отправки метрик на сервер.
 package client
 
 import (

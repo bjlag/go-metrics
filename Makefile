@@ -15,3 +15,6 @@ exec:
 
 fmt:
 	goimports -local "github.com/bjlag/go-metrics" -d -w $$(find . -type f -name '*.go' -not -path "*_mock.go")
+
+doc:
+	godoc -http=:8888
