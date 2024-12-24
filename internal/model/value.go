@@ -5,11 +5,13 @@ import (
 	"errors"
 )
 
+// ValueIn модель описывает входящий запрос на получение значения метрики.
 type ValueIn struct {
 	ID    string `json:"id"`   // имя метрики
 	MType string `json:"type"` // параметр, принимающий значение gauge или counter
 }
 
+// IsValid проверяет валидный ли запрос.
 func (m *ValueIn) IsValid() bool {
 	if m.IsGauge() {
 		return true
@@ -22,14 +24,17 @@ func (m *ValueIn) IsValid() bool {
 	return false
 }
 
+// IsGauge возвращает true, если запрос с типом метрики [TypeGauge]
 func (m *ValueIn) IsGauge() bool {
 	return m.MType == TypeGauge
 }
 
+// IsCounter возвращает true, если запрос с типом метрики [TypeCounter]
 func (m *ValueIn) IsCounter() bool {
 	return m.MType == TypeCounter
 }
 
+// UnmarshalJSON анмаршалинг запроса в модель [ValueIn] с валидацией входящих данных.
 func (m *ValueIn) UnmarshalJSON(b []byte) error {
 	type ValueInAlias ValueIn
 
@@ -56,6 +61,7 @@ func (m *ValueIn) UnmarshalJSON(b []byte) error {
 	return errors.Join(errs...)
 }
 
+// ValueOut модель описывает ответ результата получения значения метрики.
 type ValueOut struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter

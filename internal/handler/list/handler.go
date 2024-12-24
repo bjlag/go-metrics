@@ -10,12 +10,14 @@ const (
 	writeBodyMsgErr = "Error while writing body"
 )
 
+// Handler обработчик HTTP запроса для получения и вывода списка метрик на HTML странице.
 type Handler struct {
 	renderer renderer
 	repo     repo
 	log      log
 }
 
+// NewHandler создает обработчик.
 func NewHandler(renderer renderer, repo repo, log log) *Handler {
 	return &Handler{
 		renderer: renderer,
@@ -24,6 +26,7 @@ func NewHandler(renderer renderer, repo repo, log log) *Handler {
 	}
 }
 
+// Handle обрабатывает HTTP запрос.
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Title    string

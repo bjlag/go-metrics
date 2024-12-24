@@ -12,6 +12,7 @@ import (
 
 const headerHash = "HashSHA256"
 
+// Signature HTTP middleware подписывает ответ.
 type Signature struct {
 	sign *signature.SignManager
 	log  logger.Logger

@@ -9,6 +9,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 )
 
+// Gzip HTTP middleware обслуживает сжатие запроса/ответа.
 type Gzip struct {
 	log logger.Logger
 }

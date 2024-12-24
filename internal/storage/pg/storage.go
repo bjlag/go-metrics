@@ -22,11 +22,13 @@ type modelCounter struct {
 	Value int64  `db:"value"`
 }
 
+// Storage обслуживает PostgreSQL хранилище.
 type Storage struct {
 	db  *sqlx.DB
 	log logger.Logger
 }
 
+// NewStorage создает хранилище.
 func NewStorage(db *sqlx.DB, log logger.Logger) *Storage {
 	return &Storage{
 		db:  db,

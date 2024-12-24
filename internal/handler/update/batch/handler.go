@@ -11,12 +11,14 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
+// Handler обработчик HTTP запроса на обновление метрик батчами.
 type Handler struct {
 	repo   repo
 	backup backup
 	log    log
 }
 
+// NewHandler создает обработчик.
 func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
 		repo:   repo,
@@ -25,6 +27,7 @@ func NewHandler(repo repo, backup backup, log log) *Handler {
 	}
 }
 
+// Handle обрабатывает HTTP запрос.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var buf bytes.Buffer

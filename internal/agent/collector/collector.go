@@ -8,20 +8,24 @@ import (
 	"github.com/shirou/gopsutil/mem"
 )
 
+// MetricCollector собирает метрики приложения.
 type MetricCollector struct {
 	rtm *runtime.MemStats
 }
 
+// NewMetricCollector создает сборщик метрик.
 func NewMetricCollector(rtm *runtime.MemStats) *MetricCollector {
 	return &MetricCollector{
 		rtm: rtm,
 	}
 }
 
+// ReadStats читает метрики работы приложения.
 func (c MetricCollector) ReadStats() {
 	runtime.ReadMemStats(c.rtm)
 }
 
+// Collect собирает все необходимые метрики на данный момент и складывает их в слайс [Metric].
 func (c MetricCollector) Collect() ([]*Metric, error) {
 	memStat, err := mem.VirtualMemory()
 	if err != nil {

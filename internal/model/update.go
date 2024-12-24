@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// UpdateIn модель описывает входящий запрос на обновление метрики.
 type UpdateIn struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
@@ -12,6 +13,7 @@ type UpdateIn struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
+// IsValid проверяет валидный ли запрос.
 func (m *UpdateIn) IsValid() bool {
 	if m.IsGauge() && m.Value != nil {
 		return true
@@ -24,14 +26,17 @@ func (m *UpdateIn) IsValid() bool {
 	return false
 }
 
+// IsGauge возвращает true, если запрос с типом метрики [TypeGauge]
 func (m *UpdateIn) IsGauge() bool {
 	return m.MType == TypeGauge
 }
 
+// IsCounter возвращает true, если запрос с типом метрики [TypeCounter]
 func (m *UpdateIn) IsCounter() bool {
 	return m.MType == TypeCounter
 }
 
+// UnmarshalJSON анмаршалинг запроса в модель [UpdateIn] с валидацией входящих данных.
 func (m *UpdateIn) UnmarshalJSON(b []byte) error {
 	type UpdateInAlias UpdateIn
 
@@ -66,6 +71,7 @@ func (m *UpdateIn) UnmarshalJSON(b []byte) error {
 	return errors.Join(errs...)
 }
 
+// UpdateOut модель описывает ответ результата обновления метрики.
 type UpdateOut struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
