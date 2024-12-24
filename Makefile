@@ -12,3 +12,6 @@ down:
 
 exec:
 	docker exec -it postgres psql -U postgres
+
+fmt:
+	goimports -local "github.com/bjlag/go-metrics" -d -w $$(find . -type f -name '*.go' -not -path "*_mock.go")
