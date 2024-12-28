@@ -1,0 +1,372 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Сервис сбора метрик и алертинга",
+        "title": "Go Metrics",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/ping": {
+            "get": {
+                "summary": "Проверяем соединение с базой данных.",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/update/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Обновить метрику.",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "value",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/update/counter/{name}/{value}": {
+            "post": {
+                "summary": "Обновление метрики типа Counter.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "PollCount",
+                        "description": "Название метрики",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "1",
+                        "description": "Значение метрики",
+                        "name": "value",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Метрику обновили"
+                    },
+                    "400": {
+                        "description": "Некорректный запрос"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/update/gauge/{name}/{value}": {
+            "post": {
+                "summary": "Обновление метрики типа Gauge.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "Sys",
+                        "description": "Название метрики",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "1",
+                        "description": "Значение метрики",
+                        "name": "value",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Метрику обновили"
+                    },
+                    "400": {
+                        "description": "Некорректный запрос"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/updates/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "Обновить набор метрик.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Подпись запроса (если включена проверка подписи)",
+                        "name": "HashSHA256",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Request body",
+                        "name": "value",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.UpdateIn"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Метрики обновлены"
+                    },
+                    "400": {
+                        "description": "Некорректный запрос"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/value/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Получить значение метрики.",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "value",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ValueIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ValueOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/value/counter/{name}": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Получить значение метрики типа Counter.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "PollCount",
+                        "description": "Название метрики",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Значение метрики",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Неизвестный тип метрики"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        },
+        "/value/gauge/{name}": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Получить значение метрики типа Gauge.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "Sys",
+                        "description": "Название метрики",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Значение метрики",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Неизвестный тип метрики"
+                    },
+                    "404": {
+                        "description": "Метрика не найдена"
+                    },
+                    "500": {
+                        "description": "Ошибка"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.UpdateIn": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "description": "Значение метрики в случае передачи counter",
+                    "type": "integer",
+                    "example": 1
+                },
+                "id": {
+                    "description": "Имя метрики",
+                    "type": "string",
+                    "example": "Sys"
+                },
+                "type": {
+                    "description": "Параметр, принимающий значение gauge или counter",
+                    "type": "string",
+                    "example": "gauge"
+                },
+                "value": {
+                    "description": "Значение метрики в случае передачи gauge",
+                    "type": "number",
+                    "example": 1.1
+                }
+            }
+        },
+        "model.UpdateOut": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "description": "Значение метрики в случае передачи counter",
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "Имя метрики",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Параметр, принимающий значение gauge или counter",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Значение метрики в случае передачи gauge",
+                    "type": "number"
+                }
+            }
+        },
+        "model.ValueIn": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "Имя метрики",
+                    "type": "string",
+                    "example": "Sys"
+                },
+                "type": {
+                    "description": "Параметр, принимающий значение gauge или counter",
+                    "type": "string",
+                    "example": "gauge"
+                }
+            }
+        },
+        "model.ValueOut": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "description": "Значение метрики в случае передачи counter",
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "Имя метрики",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Параметр, принимающий значение gauge или counter",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Значение метрики в случае передачи gauge",
+                    "type": "number"
+                }
+            }
+        }
+    }
+}

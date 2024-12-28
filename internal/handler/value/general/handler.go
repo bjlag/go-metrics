@@ -26,6 +26,16 @@ func NewHandler(repo repo, log log) *Handler {
 }
 
 // Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Получить значение метрики.
+//	@Router		/value/ [post]
+//	@Accept		json
+//	@Produce	json
+//	@Param		value	body		model.ValueIn	true	"Request body"
+//	@Success	200		{object}	model.ValueOut
+//	@Failure	400		"Некорректный запрос"
+//	@Failure	404		"Метрика не найдена"
+//	@Failure	500		"Ошибка"
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var buf bytes.Buffer

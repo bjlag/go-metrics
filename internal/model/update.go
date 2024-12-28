@@ -7,10 +7,10 @@ import (
 
 // UpdateIn модель описывает входящий запрос на обновление метрики.
 type UpdateIn struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	ID    string   `json:"id" example:"Sys"`              // Имя метрики
+	MType string   `json:"type" example:"gauge"`          // Параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty" example:"1"`   // Значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty" example:"1.1"` // Значение метрики в случае передачи gauge
 }
 
 // IsValid проверяет валидный ли запрос.
@@ -73,8 +73,8 @@ func (m *UpdateIn) UnmarshalJSON(b []byte) error {
 
 // UpdateOut модель описывает ответ результата обновления метрики.
 type UpdateOut struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	ID    string   `json:"id"`              // Имя метрики
+	MType string   `json:"type"`            // Параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
 }

@@ -19,6 +19,11 @@ func NewHandler(db db, log log) *Handler {
 }
 
 // Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Проверяем соединение с базой данных.
+//	@Router		/ping [get]
+//	@Success	200	"OK"
+//	@Failure	500	"Ошибка"
 func (h *Handler) Handle(w http.ResponseWriter, _ *http.Request) {
 	if h.db == nil {
 		h.log.Error("Instance DB isn't initialized")

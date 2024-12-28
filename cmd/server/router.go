@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
@@ -96,6 +97,10 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 		r.Get("/heap", pprof.Handler("heap").ServeHTTP)
 		r.Get("/block", pprof.Handler("block").ServeHTTP)
 		r.Get("/allocs", pprof.Handler("allocs").ServeHTTP)
+	})
+
+	r.Route("/docs", func(r chi.Router) {
+		r.Get("/*", httpSwagger.Handler())
 	})
 
 	return r

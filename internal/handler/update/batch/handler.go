@@ -28,6 +28,16 @@ func NewHandler(repo repo, backup backup, log log) *Handler {
 }
 
 // Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Обновить набор метрик.
+//	@Router		/updates/ [post]
+//	@Accept		json
+//	@Param		HashSHA256	header	string				false	"Подпись запроса (если включена проверка подписи)"
+//	@Param		value		body	[]model.UpdateIn	true	"Request body"
+//	@Success	200			"Метрики обновлены"
+//	@Failure	400			"Некорректный запрос"
+//	@Failure	404			"Метрика не найдена"
+//	@Failure	500			"Ошибка"
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var buf bytes.Buffer

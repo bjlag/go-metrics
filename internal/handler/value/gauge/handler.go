@@ -23,6 +23,15 @@ func NewHandler(repo repo, log log) *Handler {
 }
 
 // Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Получить значение метрики типа Gauge.
+//	@Router		/value/gauge/{name} [get]
+//	@Produce	text/plain
+//	@Param		name	path		string	true	"Название метрики" example(Sys)
+//	@Success	200		{string}	string	"Значение метрики"
+//	@Failure	400		"Неизвестный тип метрики"
+//	@Failure	404		"Метрика не найдена"
+//	@Failure	500		"Ошибка"
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
