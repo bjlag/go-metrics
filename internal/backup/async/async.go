@@ -10,6 +10,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage/file"
 )
 
+// Backup обслуживает создание асинхронной резервной копии метрик.
 type Backup struct {
 	storage  storage.Repository
 	fStorage *file.Storage
@@ -20,6 +21,8 @@ type Backup struct {
 	needUpdate bool
 }
 
+// New создает экземпляр сервиса по созданию резервных копий.
+// Параметр interval регулирует, с какой периодичностью надо делать резервную копию.
 func New(storage storage.Repository, fStorage *file.Storage, interval time.Duration, log logger.Logger) *Backup {
 	return &Backup{
 		storage:  storage,
@@ -29,6 +32,7 @@ func New(storage storage.Repository, fStorage *file.Storage, interval time.Durat
 	}
 }
 
+// Start запускает воркер, которая в фоновом режиме создает резервные копии.
 func (b *Backup) Start(ctx context.Context) {
 	b.ticker = time.NewTicker(b.interval)
 
@@ -48,6 +52,7 @@ func (b *Backup) Start(ctx context.Context) {
 	b.log.Info("async backup started")
 }
 
+// Stop останавливает асинхронный воркер, создающий резервные копии.
 func (b *Backup) Stop(ctx context.Context) {
 	b.ticker.Stop()
 
@@ -59,12 +64,14 @@ func (b *Backup) Stop(ctx context.Context) {
 	b.log.Info("Backup stopped")
 }
 
+// Create посылает сигнал, что надо создать копию данных.
 func (b *Backup) Create(_ context.Context) error {
 	b.needUpdate = true
 
 	return nil
 }
 
+// Функция update обновляет резервную копию.
 func (b *Backup) update(ctx context.Context) error {
 	counters := b.storage.GetAllCounters(ctx)
 	gauges := b.storage.GetAllGauges(ctx)

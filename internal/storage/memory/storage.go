@@ -11,12 +11,14 @@ const (
 	initSize = 100
 )
 
+// Storage обслуживает in-memory хранилище.
 type Storage struct {
 	lock     sync.RWMutex
 	gauges   storage.Gauges
 	counters storage.Counters
 }
 
+// NewStorage создает хранилище.
 func NewStorage() *Storage {
 	gauges := make(storage.Gauges, initSize)
 	counters := make(storage.Counters, initSize)

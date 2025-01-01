@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
@@ -26,6 +27,10 @@ import (
 const (
 	tmplPath = "web/tmpl/list.html"
 )
+
+//	@title			Go Metrics
+//	@version		1.0
+//	@description	Сервис сбора метрик и алертинга
 
 func main() {
 	parseFlags()

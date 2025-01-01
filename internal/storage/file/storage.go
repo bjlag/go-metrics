@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+// Metric модель описывает метрику, которая будет записана в файл.
 type Metric struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`
@@ -15,11 +16,13 @@ type Metric struct {
 	Value *float64 `json:"value,omitempty"`
 }
 
+// Storage обслуживает запись метрик в файл.
 type Storage struct {
 	lock sync.RWMutex
 	path string
 }
 
+// NewStorage создает storage.
 func NewStorage(path string) (*Storage, error) {
 	if len(path) == 0 {
 		return nil, errors.New("path cannot be empty")
@@ -30,6 +33,7 @@ func NewStorage(path string) (*Storage, error) {
 	}, nil
 }
 
+// Save записывает переданные данные в файл.
 func (s *Storage) Save(data []Metric) error {
 	bytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
@@ -42,6 +46,7 @@ func (s *Storage) Save(data []Metric) error {
 	return os.WriteFile(s.path, bytes, 0666)
 }
 
+// Load загружает и возвращает данные из файла.
 func (s *Storage) Load() ([]Metric, error) {
 	if _, err := os.Stat(s.path); os.IsNotExist(err) {
 		return nil, nil

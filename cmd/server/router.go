@@ -1,8 +1,13 @@
 package main
 
 import (
+	"net/http"
+	"net/http/pprof"
+
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/bjlag/go-metrics/internal/backup"
 	"github.com/bjlag/go-metrics/internal/handler/list"
@@ -68,6 +73,34 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 
 	r.Route("/ping", func(r chi.Router) {
 		r.Get("/", ping.NewHandler(db, log).Handle)
+	})
+
+	r.Route("/debug/pprof", func(r chi.Router) {
+		r.Use(chiMiddleware.NoCache)
+
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			if r.RequestURI[len(r.RequestURI)-1:] != "/" {
+				http.Redirect(w, r, r.RequestURI+"/", http.StatusMovedPermanently)
+			}
+
+			pprof.Index(w, r)
+		})
+
+		r.Get("/cmdline", pprof.Cmdline)
+		r.Get("/profile", pprof.Profile)
+		r.Get("/symbol", pprof.Symbol)
+		r.Get("/trace", pprof.Trace)
+
+		r.Get("/goroutine", pprof.Handler("goroutine").ServeHTTP)
+		r.Get("/threadcreate", pprof.Handler("threadcreate").ServeHTTP)
+		r.Get("/mutex", pprof.Handler("mutex").ServeHTTP)
+		r.Get("/heap", pprof.Handler("heap").ServeHTTP)
+		r.Get("/block", pprof.Handler("block").ServeHTTP)
+		r.Get("/allocs", pprof.Handler("allocs").ServeHTTP)
+	})
+
+	r.Route("/docs", func(r chi.Router) {
+		r.Get("/*", httpSwagger.Handler())
 	})
 
 	return r

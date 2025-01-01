@@ -5,6 +5,7 @@ package gauge
 
 import (
 	"context"
+
 	internalLogger "github.com/bjlag/go-metrics/internal/logger"
 )
 

@@ -25,6 +25,13 @@ const (
 	retryMaxWaitTime = 500 * time.Millisecond
 )
 
+// MetricSender обслуживает HTTP запросы для отправки метрик на сервер.
+// Для отправки HTTP запросов используется HTTP клиент [go resty].
+//
+// Запросы могут быть подписаны. Подпись передается через заголовок HashSHA256.
+// Есть rate limiter для ограничения количества одновременных запросов.
+//
+// [go resty]: https://github.com/go-resty/resty
 type MetricSender struct {
 	client  *resty.Client
 	sign    *signature.SignManager
@@ -33,6 +40,7 @@ type MetricSender struct {
 	log     log
 }
 
+// NewHTTPSender создает клиент.
 func NewHTTPSender(host string, port int, sign *signature.SignManager, limiter *limiter.RateLimiter, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
@@ -49,6 +57,7 @@ func NewHTTPSender(host string, port int, sign *signature.SignManager, limiter *
 	}
 }
 
+// Send отправляет набор метрик в рамках одного запроса.
 func (s MetricSender) Send(metrics []*collector.Metric) error {
 	req := make([]model.UpdateIn, 0, len(metrics))
 	for _, m := range metrics {
@@ -114,6 +123,7 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 	return nil
 }
 
+// compress сжимает запрос.
 func compress(src []byte) ([]byte, error) {
 	var buf bytes.Buffer
 

@@ -7,6 +7,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 )
 
+// LogRequest HTTP middleware логирует запрос.
 type LogRequest struct {
 	log logger.Logger
 }

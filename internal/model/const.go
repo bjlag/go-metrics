@@ -1,6 +1,8 @@
 package model
 
 const (
-	TypeGauge   = "gauge"
+	// TypeGauge тип метрики Gauge
+	TypeGauge = "gauge"
+	// TypeCounter тип метрики Counter
 	TypeCounter = "counter"
 )

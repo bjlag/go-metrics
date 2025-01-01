@@ -4,11 +4,13 @@ import (
 	"net/http"
 )
 
+// Handler обработчик HTTP для проверки базы данных.
 type Handler struct {
 	db  db
 	log log
 }
 
+// NewHandler создает обработчик.
 func NewHandler(db db, log log) *Handler {
 	return &Handler{
 		db:  db,
@@ -16,6 +18,12 @@ func NewHandler(db db, log log) *Handler {
 	}
 }
 
+// Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Проверяем соединение с базой данных.
+//	@Router		/ping [get]
+//	@Success	200	"OK"
+//	@Failure	500	"Ошибка"
 func (h *Handler) Handle(w http.ResponseWriter, _ *http.Request) {
 	if h.db == nil {
 		h.log.Error("Instance DB isn't initialized")

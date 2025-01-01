@@ -3,8 +3,9 @@ package collector_test
 import (
 	"testing"
 
-	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bjlag/go-metrics/internal/agent/collector"
 )
 
 func TestMetric_Kind(t *testing.T) {

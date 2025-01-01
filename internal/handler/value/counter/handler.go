@@ -8,11 +8,13 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
+// Handler обработчик HTTP запроса на получение значения метрики типа Counter.
 type Handler struct {
 	repo repo
 	log  log
 }
 
+// NewHandler создает обработчик.
 func NewHandler(repo repo, log log) *Handler {
 	return &Handler{
 		repo: repo,
@@ -20,6 +22,16 @@ func NewHandler(repo repo, log log) *Handler {
 	}
 }
 
+// Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Получить значение метрики типа Counter.
+//	@Router		/value/counter/{name} [get]
+//	@Produce	text/plain
+//	@Param		name	path		string	true	"Название метрики" example(PollCount)
+//	@Success	200		{string}	string	"Значение метрики"
+//	@Failure	400		"Неизвестный тип метрики"
+//	@Failure	404		"Метрика не найдена"
+//	@Failure	500		"Ошибка"
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 

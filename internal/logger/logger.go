@@ -1,5 +1,6 @@
 package logger
 
+// Logger интерфейс логгера.
 type Logger interface {
 	WithField(key string, value interface{}) Logger
 	WithError(err error) Logger

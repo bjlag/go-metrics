@@ -10,12 +10,17 @@ const (
 	Counter = "counter"
 )
 
+// Metric представление метрики.
 type Metric struct {
+	// mType тип метрики.
 	mType string
-	name  string
+	// name имя метрики.
+	name string
+	// value значение метрики.
 	value interface{}
 }
 
+// NewMetric создает метрику.
 func NewMetric(mType string, name string, value interface{}) *Metric {
 	return &Metric{
 		mType: mType,
@@ -24,26 +29,32 @@ func NewMetric(mType string, name string, value interface{}) *Metric {
 	}
 }
 
+// NewCounterMetric создает метрику типа [Counter].
 func NewCounterMetric(name string, value interface{}) *Metric {
 	return NewMetric(Counter, name, value)
 }
 
+// NewGaugeMetric создает метрику типа [Gauge].
 func NewGaugeMetric(name string, value interface{}) *Metric {
 	return NewMetric(Gauge, name, value)
 }
 
+// Kind возвращает тип метрики.
 func (m Metric) Kind() string {
 	return m.mType
 }
 
+// Name возвращает название метрики.
 func (m Metric) Name() string {
 	return m.name
 }
 
+// Value возвращает значение метрики.
 func (m Metric) Value() interface{} {
 	return m.value
 }
 
+// GaugeValue возвращает значение метрики типа [Gauge] - float64.
 func (m Metric) GaugeValue() (float64, error) {
 	switch v := m.value.(type) {
 	case float64:
@@ -68,6 +79,7 @@ func (m Metric) GaugeValue() (float64, error) {
 	}
 }
 
+// CounterValue возвращает значение метрики типа [Counter] - int64.
 func (m Metric) CounterValue() (int64, error) {
 	switch v := m.value.(type) {
 	case int64:

@@ -1,0 +1,249 @@
+definitions:
+  model.UpdateIn:
+    properties:
+      delta:
+        description: Значение метрики в случае передачи counter
+        example: 1
+        type: integer
+      id:
+        description: Имя метрики
+        example: Sys
+        type: string
+      type:
+        description: Параметр, принимающий значение gauge или counter
+        example: gauge
+        type: string
+      value:
+        description: Значение метрики в случае передачи gauge
+        example: 1.1
+        type: number
+    type: object
+  model.UpdateOut:
+    properties:
+      delta:
+        description: Значение метрики в случае передачи counter
+        type: integer
+      id:
+        description: Имя метрики
+        type: string
+      type:
+        description: Параметр, принимающий значение gauge или counter
+        type: string
+      value:
+        description: Значение метрики в случае передачи gauge
+        type: number
+    type: object
+  model.ValueIn:
+    properties:
+      id:
+        description: Имя метрики
+        example: Sys
+        type: string
+      type:
+        description: Параметр, принимающий значение gauge или counter
+        example: gauge
+        type: string
+    type: object
+  model.ValueOut:
+    properties:
+      delta:
+        description: Значение метрики в случае передачи counter
+        type: integer
+      id:
+        description: Имя метрики
+        type: string
+      type:
+        description: Параметр, принимающий значение gauge или counter
+        type: string
+      value:
+        description: Значение метрики в случае передачи gauge
+        type: number
+    type: object
+info:
+  contact: {}
+  description: Сервис сбора метрик и алертинга
+  title: Go Metrics
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Ошибка
+      summary: Проверяем соединение с базой данных.
+  /update/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Request body
+        in: body
+        name: value
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UpdateOut'
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Обновить метрику.
+  /update/counter/{name}/{value}:
+    post:
+      parameters:
+      - description: Название метрики
+        example: PollCount
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Значение метрики
+        example: "1"
+        in: path
+        name: value
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Метрику обновили
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Обновление метрики типа Counter.
+  /update/gauge/{name}/{value}:
+    post:
+      parameters:
+      - description: Название метрики
+        example: Sys
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Значение метрики
+        example: "1"
+        in: path
+        name: value
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Метрику обновили
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Обновление метрики типа Gauge.
+  /updates/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Подпись запроса (если включена проверка подписи)
+        in: header
+        name: HashSHA256
+        type: string
+      - description: Request body
+        in: body
+        name: value
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.UpdateIn'
+          type: array
+      responses:
+        "200":
+          description: Метрики обновлены
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Обновить набор метрик.
+  /value/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Request body
+        in: body
+        name: value
+        required: true
+        schema:
+          $ref: '#/definitions/model.ValueIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ValueOut'
+        "400":
+          description: Некорректный запрос
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Получить значение метрики.
+  /value/counter/{name}:
+    get:
+      parameters:
+      - description: Название метрики
+        example: PollCount
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Значение метрики
+          schema:
+            type: string
+        "400":
+          description: Неизвестный тип метрики
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Получить значение метрики типа Counter.
+  /value/gauge/{name}:
+    get:
+      parameters:
+      - description: Название метрики
+        example: Sys
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Значение метрики
+          schema:
+            type: string
+        "400":
+          description: Неизвестный тип метрики
+        "404":
+          description: Метрика не найдена
+        "500":
+          description: Ошибка
+      summary: Получить значение метрики типа Gauge.
+swagger: "2.0"

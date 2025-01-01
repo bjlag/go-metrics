@@ -5,8 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bjlag/go-metrics/internal/middleware"
 )
 
 func TestAllowPostMethodMiddleware(t *testing.T) {

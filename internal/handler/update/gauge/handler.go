@@ -5,12 +5,14 @@ import (
 	"strconv"
 )
 
+// Handler обработчик HTTP запроса на обновление метрики типа Gauge.
 type Handler struct {
 	repo   repo
 	backup backup
 	log    log
 }
 
+// NewHandler создает обработчик.
 func NewHandler(repo repo, backup backup, log log) *Handler {
 	return &Handler{
 		repo:   repo,
@@ -19,6 +21,16 @@ func NewHandler(repo repo, backup backup, log log) *Handler {
 	}
 }
 
+// Handle обрабатывает HTTP запрос.
+//
+//	@Summary	Обновление метрики типа Gauge.
+//	@Router		/update/gauge/{name}/{value} [post]
+//	@Param		name	path	string	true	"Название метрики"	example(Sys)
+//	@Param		value	path	string	true	"Значение метрики"	example(1)
+//	@Success	200		"Метрику обновили"
+//	@Failure	400		"Некорректный запрос"
+//	@Failure	404		"Метрика не найдена"
+//	@Failure	500		"Ошибка"
 func (h Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	nameMetric := r.PathValue("name")
 	valueMetric := r.PathValue("value")

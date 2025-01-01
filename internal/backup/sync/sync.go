@@ -9,12 +9,14 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage/file"
 )
 
+// Backup обслуживает создание синхронной резервной копии метрик.
 type Backup struct {
 	storage  storage.Repository
 	fStorage *file.Storage
 	log      logger.Logger
 }
 
+// New создает экземпляр сервиса по созданию резервных копий.
 func New(storage storage.Repository, fStorage *file.Storage, log logger.Logger) *Backup {
 	return &Backup{
 		storage:  storage,
@@ -23,6 +25,7 @@ func New(storage storage.Repository, fStorage *file.Storage, log logger.Logger) 
 	}
 }
 
+// Create создает резервную копию.
 func (b *Backup) Create(ctx context.Context) error {
 	counters := b.storage.GetAllCounters(ctx)
 	gauges := b.storage.GetAllGauges(ctx)
