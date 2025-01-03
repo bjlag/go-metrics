@@ -17,6 +17,9 @@ fmt:
 	goimports -local "github.com/bjlag/go-metrics" -d -w $$(find . -type f -name '*.go' -not -path "*_mock.go")
 	swag fmt --dir ./cmd/server,./internal/handler
 
+check:
+	go vet -vettool=$(GOPATH)/bin/shadow ./...
+
 doc:
 	godoc -http=:8888 -play
 
