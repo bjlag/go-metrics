@@ -13,12 +13,16 @@ down:
 exec:
 	docker exec -it postgres psql -U postgres
 
+build:
+	 go build -o ./bin/multichecker ./cmd/staticlint/multichecker.go
+
 fmt:
 	goimports -local "github.com/bjlag/go-metrics" -d -w $$(find . -type f -name '*.go' -not -path "*_mock.go")
 	swag fmt --dir ./cmd/server,./internal/handler
 
-check:
-	go vet -vettool=$(GOPATH)/bin/shadow ./...
+lint:
+	$(if $(wildcard ./bin/multichecker),,$(error "Binary './bin/multichecker' not found. Please run 'make build'"))
+	./bin/multichecker -c 2 ./...
 
 doc:
 	godoc -http=:8888 -play
