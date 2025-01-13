@@ -12,11 +12,18 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/signature"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func main() {
@@ -30,6 +37,11 @@ func main() {
 	defer func() {
 		_ = log.Close()
 	}()
+
+	build := cmd.NewBuild(buildVersion, buildDate, buildCommit)
+	log.Info(build.VersionString())
+	log.Info(build.DateString())
+	log.Info(build.CommitString())
 
 	log.Info("Starting agent")
 	log.Info(fmt.Sprintf("Sending metrics to %s", addr.String()))

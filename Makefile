@@ -1,3 +1,7 @@
+BUILD_VERSION = "v1.0.0"
+BUILD_DATE = $(shell date +'%Y/%m/%d %H:%M:%S')
+BUILD_COMMIT = $(shell git rev-parse --short HEAD)
+
 up:
 	docker run -d --rm \
 		--name postgres \
@@ -12,6 +16,15 @@ down:
 
 exec:
 	docker exec -it postgres psql -U postgres
+
+run:
+	make -j 2 run-server run-agent
+
+run-agent:
+	go run -ldflags "-X main.buildVersion=$(BUILD_VERSION) -X 'main.buildDate=$(BUILD_DATE)' -X 'main.buildCommit=$(BUILD_COMMIT)'" ./cmd/agent/.
+
+run-server:
+	go run -ldflags "-X main.buildVersion=$(BUILD_VERSION) -X 'main.buildDate=$(BUILD_DATE)' -X 'main.buildCommit=$(BUILD_COMMIT)'" ./cmd/server/.
 
 build:
 	 go build -o ./bin/multichecker ./cmd/staticlint/multichecker.go

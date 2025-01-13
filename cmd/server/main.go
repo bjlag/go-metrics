@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/bjlag/go-metrics/cmd"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
@@ -26,6 +27,13 @@ import (
 
 const (
 	tmplPath = "web/tmpl/list.html"
+	noValue  = "N/A"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 //	@title			Go Metrics
@@ -43,6 +51,11 @@ func main() {
 	defer func() {
 		_ = log.Close()
 	}()
+
+	build := cmd.NewBuild(buildVersion, buildDate, buildCommit)
+	log.Info(build.VersionString())
+	log.Info(build.DateString())
+	log.Info(build.CommitString())
 
 	log.WithField("address", addr.String()).Info("Starting server")
 	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
