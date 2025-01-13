@@ -9,55 +9,49 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 )
 
-// Gzip HTTP middleware обслуживает сжатие запроса/ответа.
-type Gzip struct {
-	log logger.Logger
-}
+// GzipMiddleware HTTP middleware обслуживает сжатие запроса/ответа.
+func GzipMiddleware(logger logger.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ow := w
 
-func NewGzip(log logger.Logger) *Gzip {
-	return &Gzip{
-		log: log,
-	}
-}
-
-func (m *Gzip) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ow := w
-
-		if isRequestSupportedCompress(r) {
-			zr, err := newGzipReader(r.Body)
-			if err != nil {
-				m.log.WithError(err).Error("Error creating gzip reader")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-
-			r.Body = zr
-		}
-
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			zw, err := newGzipWriter(w)
-			if err != nil {
-				m.log.WithError(err).Error("Error creating gzip writer")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-
-			defer func() {
-				err = zw.Close()
+			if isRequestSupportedCompress(r) {
+				zr, err := newGzipReader(r.Body)
 				if err != nil {
-					m.log.WithError(err).Error("Failed to close gzip writer")
+					logger.WithError(err).Error("Error creating gzip reader")
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
 				}
-			}()
 
-			ow = zw
+				r.Body = zr
+			}
 
-			zw.Header().Set("Content-Encoding", "gzip")
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				zw, err := newGzipWriter(w)
+				if err != nil {
+					logger.WithError(err).Error("Error creating gzip writer")
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
+				}
+
+				defer func() {
+					err = zw.Close()
+					if err != nil {
+						logger.WithError(err).Error("Failed to close gzip writer")
+						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					}
+				}()
+
+				ow = zw
+
+				zw.Header().Set("Content-Encoding", "gzip")
+			}
+
+			next.ServeHTTP(ow, r)
 		}
 
-		next.ServeHTTP(ow, r)
-	})
+		return http.HandlerFunc(fn)
+	}
 }
 
 func isRequestSupportedCompress(r *http.Request) bool {

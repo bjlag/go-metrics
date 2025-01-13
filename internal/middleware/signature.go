@@ -12,54 +12,46 @@ import (
 
 const headerHash = "HashSHA256"
 
-// Signature HTTP middleware подписывает ответ.
-type Signature struct {
-	sign *signature.SignManager
-	log  logger.Logger
-}
+// SignatureMiddleware HTTP middleware подписывает ответ.
+func SignatureMiddleware(sign *signature.SignManager, logger logger.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			if !sign.Enable() {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-func NewSignature(sign *signature.SignManager, log logger.Logger) *Signature {
-	return &Signature{
-		sign: sign,
-		log:  log,
-	}
-}
+			reqSign := r.Header.Get(headerHash)
+			if len(reqSign) == 0 {
+				logger.Info(fmt.Sprintf("No '%s' header", headerHash))
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
 
-func (m *Signature) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !m.sign.Enable() {
+			var buf bytes.Buffer
+			_, err := buf.ReadFrom(r.Body)
+			if err != nil {
+				logger.WithError(err).Error("Error reading request body")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			_ = r.Body.Close()
+
+			body := buf.Bytes()
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+			isValid, respSign := sign.Verify(buf.Bytes(), reqSign)
+			if !isValid {
+				logger.Info("Signature is not correct")
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+
 			next.ServeHTTP(w, r)
-			return
+
+			w.Header().Set(headerHash, respSign)
 		}
 
-		reqSign := r.Header.Get(headerHash)
-		if len(reqSign) == 0 {
-			m.log.Info(fmt.Sprintf("No '%s' header", headerHash))
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		var buf bytes.Buffer
-		_, err := buf.ReadFrom(r.Body)
-		if err != nil {
-			m.log.WithError(err).Error("Error reading request body")
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		_ = r.Body.Close()
-
-		body := buf.Bytes()
-		r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-		isValid, respSign := m.sign.Verify(buf.Bytes(), reqSign)
-		if !isValid {
-			m.log.Info("Signature is not correct")
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-
-		w.Header().Set(headerHash, respSign)
-	})
+		return http.HandlerFunc(fn)
+	}
 }

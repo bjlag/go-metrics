@@ -7,34 +7,28 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 )
 
-// LogRequest HTTP middleware логирует запрос.
-type LogRequest struct {
-	log logger.Logger
-}
+// LogMiddleware HTTP middleware логирует запрос.
+func LogMiddleware(logger logger.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			dw := newResponseDataWriter(w)
 
-func NewLogRequest(log logger.Logger) *LogRequest {
-	return &LogRequest{
-		log: log,
+			start := time.Now()
+			next.ServeHTTP(dw, r)
+			duration := time.Since(start)
+
+			logger.
+				WithField("uri", r.URL.Path).
+				WithField("method", r.Method).
+				WithField("content_type", r.Header.Get("Content-Type")).
+				WithField("duration", duration).
+				WithField("status", dw.data.status).
+				WithField("size", dw.data.size).
+				Info("Got request")
+		}
+
+		return http.HandlerFunc(fn)
 	}
-}
-
-func (m LogRequest) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		dw := newResponseDataWriter(w)
-
-		start := time.Now()
-		next.ServeHTTP(dw, r)
-		duration := time.Since(start)
-
-		m.log.
-			WithField("uri", r.URL.Path).
-			WithField("method", r.Method).
-			WithField("content_type", r.Header.Get("Content-Type")).
-			WithField("duration", duration).
-			WithField("status", dw.data.status).
-			WithField("size", dw.data.size).
-			Info("Got request")
-	})
 }
 
 type responseData struct {
