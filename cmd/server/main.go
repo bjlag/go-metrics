@@ -18,7 +18,7 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"

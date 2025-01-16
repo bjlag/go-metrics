@@ -24,7 +24,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 

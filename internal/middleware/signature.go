@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/bjlag/go-metrics/internal/logger"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
 const headerHash = "HashSHA256"

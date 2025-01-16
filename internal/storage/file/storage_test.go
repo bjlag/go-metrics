@@ -32,9 +32,11 @@ func TestStorage_Load(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		_ = os.Remove(tmpfile.Name())
+	}()
 
-	if _, err := tmpfile.Write([]byte(content)); err != nil {
+	if _, err = tmpfile.Write([]byte(content)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,7 +60,9 @@ func TestStorage_Save(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		_ = os.Remove(tmpfile.Name())
+	}()
 
 	// Act
 	store, err := file.NewStorage(tmpfile.Name())

@@ -2,11 +2,11 @@ package memory_test
 
 import (
 	"context"
-	"github.com/bjlag/go-metrics/internal/storage"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
 )
 

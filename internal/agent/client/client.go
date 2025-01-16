@@ -12,7 +12,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
 const (
