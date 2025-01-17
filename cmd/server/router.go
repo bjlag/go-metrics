@@ -24,16 +24,18 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, crypt *crypt.DecryptManager, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
 		middleware.LogMiddleware(log),
 		middleware.GzipMiddleware(log),
+		middleware.DecryptMiddleware(crypt, log),
 	)
 
 	r.Route("/", func(r chi.Router) {

@@ -12,6 +12,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
@@ -35,13 +36,14 @@ const (
 type MetricSender struct {
 	client  *resty.Client
 	sign    *signature.SignManager
+	crypt   *crypt.EncryptManager
 	limiter *limiter.RateLimiter
 	baseURL string
 	log     log
 }
 
 // NewHTTPSender создает клиент.
-func NewHTTPSender(host string, port int, sign *signature.SignManager, limiter *limiter.RateLimiter, log log) *MetricSender {
+func NewHTTPSender(host string, port int, sign *signature.SignManager, crypt *crypt.EncryptManager, limiter *limiter.RateLimiter, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)
@@ -51,6 +53,7 @@ func NewHTTPSender(host string, port int, sign *signature.SignManager, limiter *
 	return &MetricSender{
 		client:  client,
 		sign:    sign,
+		crypt:   crypt,
 		limiter: limiter,
 		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
 		log:     log,
@@ -91,7 +94,12 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		return fmt.Errorf("failed to marshal metric: %s", err)
 	}
 
-	compressed, err := compress(jsonb)
+	cipherData, err := s.crypt.Encrypt(jsonb)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt metric: %s", err)
+	}
+
+	compressed, err := compress(cipherData)
 	if err != nil {
 		return err
 	}

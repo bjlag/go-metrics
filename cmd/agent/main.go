@@ -17,6 +17,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
@@ -50,6 +51,7 @@ func main() {
 	log.Info(fmt.Sprintf("Log level is '%s'", logLevel))
 	log.Info(fmt.Sprintf("Sign request is %t", len(secretKey) > 0))
 	log.Info(fmt.Sprintf("Rate limit is %d", rateLimit))
+	log.Info(fmt.Sprintf("Public key %s", cryptoKeyPath))
 
 	if err := run(log); err != nil {
 		log.WithError(err).Error("Error running agent")
@@ -67,10 +69,15 @@ func run(log logger.Logger) error {
 		cancel()
 	}()
 
+	cryptManager, err := crypt.NewEncryptManager(cryptoKeyPath)
+	if err != nil {
+		return err
+	}
+
 	signManager := signature.NewSignManager(secretKey)
 	rateLimiter := limiter.NewRateLimiter(rateLimit)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(addr.host, addr.port, signManager, rateLimiter, log)
+	metricClient := client.NewHTTPSender(addr.host, addr.port, signManager, cryptManager, rateLimiter, log)
 
 	pollTicker := time.NewTicker(pollInterval)
 	defer pollTicker.Stop()

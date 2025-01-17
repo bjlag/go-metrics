@@ -18,6 +18,7 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
@@ -27,7 +28,6 @@ import (
 
 const (
 	tmplPath = "web/tmpl/list.html"
-	noValue  = "N/A"
 )
 
 var (
@@ -62,6 +62,7 @@ func main() {
 	log.Info(fmt.Sprintf("Store interval %s", storeInterval))
 	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath))
 	log.Info(fmt.Sprintf("Restore metrics %v", restore))
+	log.Info(fmt.Sprintf("Private key %s", cryptoKeyPath))
 
 	if err := run(log); err != nil {
 		log.WithError(err).Error("Error running server")
@@ -117,11 +118,16 @@ func run(log logger.Logger) error {
 		backupCreator = asyncBackupCreator
 	}
 
+	cryptManager, err := crypt.NewDecryptManager(cryptoKeyPath)
+	if err != nil {
+		return err
+	}
+
 	signManager := signature.NewSignManager(secretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
 		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, log),
+		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)

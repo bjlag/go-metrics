@@ -45,6 +45,7 @@ const (
 	envLogLevel          = "LOG_LEVEL"
 	envSecretKey         = "KEY"
 	envRateLimitKey      = "RATE_LIMIT"
+	envCryptoKey         = "CRYPTO_KEY"
 )
 
 var (
@@ -56,9 +57,10 @@ var (
 	pollInterval   = defaultPoolInterval * time.Second
 	reportInterval = defaultReportInterval * time.Second
 
-	logLevel  string
-	secretKey string
-	rateLimit int
+	logLevel      string
+	secretKey     string
+	rateLimit     int
+	cryptoKeyPath string
 )
 
 func parseFlags() {
@@ -88,6 +90,7 @@ func parseFlags() {
 	flag.StringVar(&logLevel, "log", defaultLogLevel, "Log level")
 	flag.StringVar(&secretKey, "k", "", "Secret key")
 	flag.IntVar(&rateLimit, "l", defaultRateLimit, "Rate limit")
+	flag.StringVar(&cryptoKeyPath, "crypto-key", "", "Path to public key")
 
 	flag.Parse()
 }
@@ -136,6 +139,10 @@ func parseEnvs() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if envCryptoKeyValue := os.Getenv(envCryptoKey); envCryptoKeyValue != "" {
+		cryptoKeyPath = envCryptoKeyValue
 	}
 }
 

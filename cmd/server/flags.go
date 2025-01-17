@@ -46,6 +46,7 @@ const (
 	envFileStoragePath = "FILE_STORAGE_PATH"
 	envRestore         = "RESTORE"
 	envSecretKey       = "KEY"
+	envCryptoKey       = "CRYPTO_KEY"
 )
 
 var (
@@ -60,6 +61,7 @@ var (
 	fileStoragePath string
 	restore         bool
 	secretKey       string
+	cryptoKeyPath   string
 )
 
 func parseFlags() {
@@ -81,6 +83,7 @@ func parseFlags() {
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "File storage path")
 	flag.BoolVar(&restore, "r", defaultRestore, "Restore metrics")
 	flag.StringVar(&secretKey, "k", "", "Secret key")
+	flag.StringVar(&cryptoKeyPath, "crypto-key", "", "Path to private key")
 
 	flag.Parse()
 }
@@ -123,6 +126,10 @@ func parseEnvs() {
 
 	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
 		secretKey = envSecretKeyValue
+	}
+
+	if envCryptoKeyValue := os.Getenv(envCryptoKey); envCryptoKeyValue != "" {
+		cryptoKeyPath = envCryptoKeyValue
 	}
 }
 
