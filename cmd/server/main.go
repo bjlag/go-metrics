@@ -97,7 +97,7 @@ func run(log logger.Logger) error {
 	}
 
 	if restore {
-		err := restoreData(ctx, backupStore, store)
+		err = restoreData(ctx, backupStore, store)
 		if err != nil {
 			log.WithError(err).Error("Failed to load backup data")
 		}

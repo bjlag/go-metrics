@@ -30,6 +30,8 @@ func (m SignManager) Sing(data []byte) string {
 }
 
 // Verify проверяет переданную подпись.
+// Первым параметром возвращает TRUE, если данные подписаны верно, иначе FALSE.
+// Вторым параметров подпись проверенных данных.
 func (m SignManager) Verify(data []byte, signature string) (bool, string) {
 	if !m.enable {
 		return false, ""

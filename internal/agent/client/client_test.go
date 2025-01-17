@@ -2,7 +2,9 @@ package client_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -17,6 +19,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
@@ -34,29 +37,35 @@ func TestMetricSender_Send(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "success counter",
+			name: "success",
 			args: args{
-				metric: []*collector.Metric{collector.NewMetric("counter", "name", 1)},
+				metric: []*collector.Metric{
+					collector.NewMetric("counter", "counter_name", 1),
+					collector.NewMetric("gauge", "gauge_name", 2),
+				},
 			},
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/updates/", r.URL.Path)
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 				assert.Equal(t, "POST", r.Method)
 
-				var err error
-				var buf bytes.Buffer
+				body := decompress(r.Body)
 
-				_, err = buf.ReadFrom(r.Body)
+				var in []model.UpdateIn
+				err := json.Unmarshal(body, &in)
 				assert.NoError(t, err)
 
-				in := &model.UpdateIn{}
-				err = json.Unmarshal(buf.Bytes(), in)
-				assert.NoError(t, err)
+				assert.Len(t, in, 2)
 
-				assert.Equal(t, "name", in.ID)
-				assert.Equal(t, "counter", in.MType)
-				assert.Equal(t, int64(1), *in.Delta)
-				assert.Nil(t, in.Value)
+				assert.Equal(t, "counter", in[0].MType)
+				assert.Equal(t, "counter_name", in[0].ID)
+				assert.Equal(t, int64(1), *in[0].Delta)
+				assert.Nil(t, in[0].Value)
+
+				assert.Equal(t, "gauge", in[1].MType)
+				assert.Equal(t, "gauge_name", in[1].ID)
+				assert.Equal(t, float64(2), *in[1].Value)
+				assert.Nil(t, in[1].Delta)
 			})),
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
@@ -67,65 +76,35 @@ func TestMetricSender_Send(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name: "success gauge",
-			args: args{
-				metric: []*collector.Metric{collector.NewMetric("gauge", "name", 1.1)},
-			},
-			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "/update/", r.URL.Path)
-				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-				assert.Equal(t, "POST", r.Method)
-
-				var err error
-				var buf bytes.Buffer
-
-				_, err = buf.ReadFrom(r.Body)
-				assert.NoError(t, err)
-
-				in := &model.UpdateIn{}
-				err = json.Unmarshal(buf.Bytes(), in)
-				assert.NoError(t, err)
-
-				assert.Equal(t, "name", in.ID)
-				assert.Equal(t, "gauge", in.MType)
-				assert.Equal(t, 1.1, *in.Value)
-				assert.Nil(t, in.Delta)
-			})),
-			wantStatus: http.StatusOK,
-		},
-		{
 			name: "error unknown metric type",
 			args: args{
 				metric: []*collector.Metric{collector.NewMetric("unknown_type", "name", 1.1)},
 			},
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "/update/", r.URL.Path)
+				assert.Equal(t, "/updates/", r.URL.Path)
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 				assert.Equal(t, "POST", r.Method)
 
-				var err error
-				var buf bytes.Buffer
+				body := decompress(r.Body)
 
-				_, err = buf.ReadFrom(r.Body)
+				var in []model.UpdateIn
+				err := json.Unmarshal(body, &in)
 				assert.NoError(t, err)
 
-				in := &model.UpdateIn{}
-				err = json.Unmarshal(buf.Bytes(), in)
-				assert.NoError(t, err)
-
-				assert.Equal(t, "name", in.ID)
-				assert.Equal(t, "gauge", in.MType)
-				assert.Equal(t, 1.1, *in.Value)
-				assert.Nil(t, in.Delta)
+				assert.Len(t, in, 0)
 			})),
-			wantErr: true,
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Info(gomock.Any())
+				return mockLog
+			},
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip()
-
 			ctrl := gomock.NewController(t)
 
 			defer tt.server.Close()
@@ -133,10 +112,13 @@ func TestMetricSender_Send(t *testing.T) {
 			parts := strings.Split(tt.server.Listener.Addr().String(), ":")
 			port, _ := strconv.Atoi(parts[1])
 
+			encryptManager, _ := crypt.NewEncryptManager("")
+
 			c := client.NewHTTPSender(
 				parts[0],
 				port,
 				signature.NewSignManager("secretKey"),
+				encryptManager,
 				limiter.NewRateLimiter(1),
 				tt.log(ctrl),
 			)
@@ -149,4 +131,13 @@ func TestMetricSender_Send(t *testing.T) {
 			}
 		})
 	}
+}
+
+func decompress(r io.Reader) []byte {
+	zr, _ := gzip.NewReader(r)
+
+	var zb bytes.Buffer
+	_, _ = zb.ReadFrom(zr)
+
+	return zb.Bytes()
 }
