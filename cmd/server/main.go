@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/bjlag/go-metrics/cmd"
+	"github.com/bjlag/go-metrics/cmd/server/config"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
@@ -41,10 +42,9 @@ var (
 //	@description	Сервис сбора метрик и алертинга
 
 func main() {
-	parseFlags()
-	parseEnvs()
+	cfg := config.LoadConfig()
 
-	log, err := logger.NewZapLog(logLevel)
+	log, err := logger.NewZapLog(cfg.LogLevel)
 	if err != nil {
 		nativLog.Fatalln(err)
 	}
@@ -57,20 +57,21 @@ func main() {
 	log.Info(build.DateString())
 	log.Info(build.CommitString())
 
-	log.WithField("address", addr.String()).Info("Starting server")
-	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
-	log.Info(fmt.Sprintf("Store interval %s", storeInterval))
-	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath))
-	log.Info(fmt.Sprintf("Restore metrics %v", restore))
-	log.Info(fmt.Sprintf("Private key %s", cryptoKeyPath))
+	log.WithField("address", cfg.Address.String()).Info("Starting server")
+	log.Info(fmt.Sprintf("Log level '%s'", cfg.LogLevel))
+	log.Info(fmt.Sprintf("Store interval %s", cfg.StoreInterval))
+	log.Info(fmt.Sprintf("File storage path '%s'", cfg.FileStoragePath))
+	log.Info(fmt.Sprintf("Restore metrics %v", cfg.Restore))
+	log.Info(fmt.Sprintf("Private key %s", cfg.CryptoKeyPath))
+	log.Info(fmt.Sprintf("JSON config %s", cfg.ConfigPath))
 
-	if err := run(log); err != nil {
+	if err := run(log, cfg); err != nil {
 		log.WithError(err).Error("Error running server")
 		nativLog.Fatalln(err)
 	}
 }
 
-func run(log logger.Logger) error {
+func run(log logger.Logger, cfg *config.Configuration) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -81,7 +82,7 @@ func run(log logger.Logger) error {
 		cancel()
 	}()
 
-	db := initDB(databaseDSN, log)
+	db := initDB(cfg.DatabaseDSN, log)
 
 	var store storage.Repository
 	if db != nil {
@@ -90,13 +91,13 @@ func run(log logger.Logger) error {
 		store = memory.NewStorage()
 	}
 
-	backupStore, err := file.NewStorage(fileStoragePath)
+	backupStore, err := file.NewStorage(cfg.FileStoragePath)
 	if err != nil {
 		log.WithError(err).Error("Failed to create file storage")
 		return err
 	}
 
-	if restore {
+	if cfg.Restore {
 		err = restoreData(ctx, backupStore, store)
 		if err != nil {
 			log.WithError(err).Error("Failed to load backup data")
@@ -110,23 +111,23 @@ func run(log logger.Logger) error {
 		asyncBackupCreator *asyncBackup.Backup
 	)
 
-	if storeInterval <= 0 {
+	if cfg.StoreInterval <= 0 {
 		backupCreator = syncBackup.New(store, backupStore, log)
 	} else {
-		asyncBackupCreator = asyncBackup.New(store, backupStore, storeInterval, log)
+		asyncBackupCreator = asyncBackup.New(store, backupStore, cfg.StoreInterval, log)
 		asyncBackupCreator.Start(ctx)
 		backupCreator = asyncBackupCreator
 	}
 
-	cryptManager, err := crypt.NewDecryptManager(cryptoKeyPath)
+	cryptManager, err := crypt.NewDecryptManager(cfg.CryptoKeyPath)
 	if err != nil {
 		return err
 	}
 
-	signManager := signature.NewSignManager(secretKey)
+	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
-		Addr:    addr.String(),
+		Addr:    cfg.Address.String(),
 		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, log),
 	}
 
