@@ -180,7 +180,7 @@ func (c *Configuration) parseJSONConfig() {
 		c.FileStoragePath = *parsedConfig.FileStoragePath
 	}
 
-	if c.Restore == false && parsedConfig.Restore != nil {
+	if !c.Restore && parsedConfig.Restore != nil {
 		c.Restore = *parsedConfig.Restore
 	}
 
