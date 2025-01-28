@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	nativLog "log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -28,7 +29,8 @@ import (
 )
 
 const (
-	tmplPath = "web/tmpl/list.html"
+	tmplPath  = "web/tmpl/list.html"
+	gdTimeout = 10 * time.Second
 )
 
 var (
@@ -72,15 +74,8 @@ func main() {
 }
 
 func run(log logger.Logger, cfg *config.Configuration) error {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-		<-c
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer cancel()
 
 	db := initDB(cfg.DatabaseDSN, log)
 
@@ -140,14 +135,29 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	g.Go(func() error {
 		<-gCtx.Done()
 
-		log.Info("Graceful shutting down server")
-		asyncBackupCreator.Stop(ctx)
-		return httpServer.Shutdown(context.Background())
+		gdCtx, cancel := context.WithTimeout(context.Background(), gdTimeout)
+		defer cancel()
+
+		if asyncBackupCreator != nil {
+			asyncBackupCreator.Stop(gdCtx)
+		} else {
+			err = backupCreator.Create(gdCtx)
+			if err != nil {
+				log.WithError(err).Error("Failed to create backup while shutting down")
+				return err
+			}
+		}
+
+		return httpServer.Shutdown(gdCtx)
 	})
 
 	if err := g.Wait(); err != nil {
-		return err
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
 	}
+
+	log.Info("Server shutdown gracefully")
 
 	return nil
 }

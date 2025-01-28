@@ -32,7 +32,7 @@ func initDB(dsn string, log logger.Logger) *sqlx.DB {
 		return nil
 	}
 
-	log.WithField("dsn", dsn).Info("started db")
+	log.WithField("dsn", dsn).Info("Started db")
 
 	return db
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	logNativ "log"
-	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
@@ -60,15 +59,8 @@ func main() {
 }
 
 func run(log logger.Logger, cfg *config.Configuration) error {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-		<-c
-		cancel()
-	}()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer cancel()
 
 	cryptManager, err := crypt.NewEncryptManager(cfg.CryptoKeyPath)
 	if err != nil {
@@ -86,12 +78,6 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	defer reportTicker.Stop()
 
 	g, gCtx := errgroup.WithContext(ctx)
-
-	go func() {
-		<-ctx.Done()
-
-		log.Info("Graceful shutting down agent")
-	}()
 
 	g.Go(func() error {
 		for {
@@ -139,6 +125,8 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	if err := g.Wait(); err != nil {
 		return err
 	}
+
+	log.Info("Agent shutdown gracefully")
 
 	return nil
 }
