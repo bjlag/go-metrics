@@ -24,26 +24,28 @@ import (
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, log logger.Logger) *chi.Mux {
+func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, crypt *crypt.DecryptManager, log logger.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
-		middleware.NewLogRequest(log).Handle,
-		middleware.NewGzip(log).Handle,
+		middleware.LogMiddleware(log),
+		middleware.GzipMiddleware(log),
+		middleware.DecryptMiddleware(crypt, log),
 	)
 
 	r.Route("/", func(r chi.Router) {
-		r.With(middleware.SetHeaderResponse("Content-Type", "text/html")).
+		r.With(middleware.HeaderResponseMiddleware("Content-Type", "text/html")).
 			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
 	})
 
 	r.Route("/update", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
-		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
+		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
+		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, backup, log).Handle)
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, backup, log).Handle)
@@ -52,8 +54,8 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	})
 
 	r.Route("/updates", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
-		validateSignRequest := middleware.NewSignature(singManager, log).Handle
+		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
+		validateSignRequest := middleware.SignatureMiddleware(singManager, log)
 
 		r.
 			With(jsonContentType).
@@ -62,8 +64,8 @@ func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository,
 	})
 
 	r.Route("/value", func(r chi.Router) {
-		jsonContentType := middleware.SetHeaderResponse("Content-Type", "application/json")
-		textContentType := middleware.SetHeaderResponse("Content-Type", "text/plain", "charset=utf-8")
+		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
+		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
 		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)

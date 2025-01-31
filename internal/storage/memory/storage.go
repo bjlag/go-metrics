@@ -100,7 +100,7 @@ func (s *Storage) AddCounters(_ context.Context, counters []storage.Counter) err
 		currentValue, ok := s.counters[counter.ID]
 		if !ok {
 			s.counters[counter.ID] = counter.Value
-			return nil
+			continue
 		}
 
 		s.counters[counter.ID] = currentValue + counter.Value

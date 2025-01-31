@@ -37,19 +37,24 @@ func (b *Backup) Start(ctx context.Context) {
 	b.ticker = time.NewTicker(b.interval)
 
 	go func() {
-		for range b.ticker.C {
-			if b.needUpdate {
-				err := b.update(ctx)
-				if err != nil {
-					b.log.WithError(err).Error("Failed to update backup")
-				}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-b.ticker.C:
+				if b.needUpdate {
+					err := b.update(ctx)
+					if err != nil {
+						b.log.WithError(err).Error("Failed to update backup")
+					}
 
-				b.needUpdate = false
+					b.needUpdate = false
+				}
 			}
 		}
 	}()
 
-	b.log.Info("async backup started")
+	b.log.Info("Async backup started")
 }
 
 // Stop останавливает асинхронный воркер, создающий резервные копии.

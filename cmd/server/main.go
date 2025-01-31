@@ -2,23 +2,26 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	nativLog "log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/bjlag/go-metrics/cmd"
+	"github.com/bjlag/go-metrics/cmd/server/config"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
-	"github.com/bjlag/go-metrics/internal/signature"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
 	"github.com/bjlag/go-metrics/internal/storage/file"
 	"github.com/bjlag/go-metrics/internal/storage/memory"
@@ -26,8 +29,8 @@ import (
 )
 
 const (
-	tmplPath = "web/tmpl/list.html"
-	noValue  = "N/A"
+	tmplPath  = "web/tmpl/list.html"
+	gdTimeout = 10 * time.Second
 )
 
 var (
@@ -41,10 +44,9 @@ var (
 //	@description	Сервис сбора метрик и алертинга
 
 func main() {
-	parseFlags()
-	parseEnvs()
+	cfg := config.LoadConfig()
 
-	log, err := logger.NewZapLog(logLevel)
+	log, err := logger.NewZapLog(cfg.LogLevel)
 	if err != nil {
 		nativLog.Fatalln(err)
 	}
@@ -57,30 +59,25 @@ func main() {
 	log.Info(build.DateString())
 	log.Info(build.CommitString())
 
-	log.WithField("address", addr.String()).Info("Starting server")
-	log.Info(fmt.Sprintf("Log level '%s'", logLevel))
-	log.Info(fmt.Sprintf("Store interval %s", storeInterval))
-	log.Info(fmt.Sprintf("File storage path '%s'", fileStoragePath))
-	log.Info(fmt.Sprintf("Restore metrics %v", restore))
+	log.WithField("address", cfg.Address.String()).Info("Starting server")
+	log.Info(fmt.Sprintf("Log level '%s'", cfg.LogLevel))
+	log.Info(fmt.Sprintf("Store interval %s", cfg.StoreInterval))
+	log.Info(fmt.Sprintf("File storage path '%s'", cfg.FileStoragePath))
+	log.Info(fmt.Sprintf("Restore metrics %v", cfg.Restore))
+	log.Info(fmt.Sprintf("Private key %s", cfg.CryptoKeyPath))
+	log.Info(fmt.Sprintf("JSON config %s", cfg.ConfigPath))
 
-	if err := run(log); err != nil {
+	if err := run(log, cfg); err != nil {
 		log.WithError(err).Error("Error running server")
 		nativLog.Fatalln(err)
 	}
 }
 
-func run(log logger.Logger) error {
-	ctx, cancel := context.WithCancel(context.Background())
+func run(log logger.Logger, cfg *config.Configuration) error {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer cancel()
 
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-		<-c
-		cancel()
-	}()
-
-	db := initDB(databaseDSN, log)
+	db := initDB(cfg.DatabaseDSN, log)
 
 	var store storage.Repository
 	if db != nil {
@@ -89,14 +86,14 @@ func run(log logger.Logger) error {
 		store = memory.NewStorage()
 	}
 
-	backupStore, err := file.NewStorage(fileStoragePath)
+	backupStore, err := file.NewStorage(cfg.FileStoragePath)
 	if err != nil {
 		log.WithError(err).Error("Failed to create file storage")
 		return err
 	}
 
-	if restore {
-		err := restoreData(ctx, backupStore, store)
+	if cfg.Restore {
+		err = restoreData(ctx, backupStore, store)
 		if err != nil {
 			log.WithError(err).Error("Failed to load backup data")
 		}
@@ -109,19 +106,24 @@ func run(log logger.Logger) error {
 		asyncBackupCreator *asyncBackup.Backup
 	)
 
-	if storeInterval <= 0 {
+	if cfg.StoreInterval <= 0 {
 		backupCreator = syncBackup.New(store, backupStore, log)
 	} else {
-		asyncBackupCreator = asyncBackup.New(store, backupStore, storeInterval, log)
+		asyncBackupCreator = asyncBackup.New(store, backupStore, cfg.StoreInterval, log)
 		asyncBackupCreator.Start(ctx)
 		backupCreator = asyncBackupCreator
 	}
 
-	signManager := signature.NewSignManager(secretKey)
+	cryptManager, err := crypt.NewDecryptManager(cfg.CryptoKeyPath)
+	if err != nil {
+		return err
+	}
+
+	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
-		Addr:    addr.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, log),
+		Addr:    cfg.Address.String(),
+		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -133,14 +135,29 @@ func run(log logger.Logger) error {
 	g.Go(func() error {
 		<-gCtx.Done()
 
-		log.Info("Graceful shutting down server")
-		asyncBackupCreator.Stop(ctx)
-		return httpServer.Shutdown(context.Background())
+		gdCtx, cancel := context.WithTimeout(context.Background(), gdTimeout)
+		defer cancel()
+
+		if asyncBackupCreator != nil {
+			asyncBackupCreator.Stop(gdCtx)
+		} else {
+			err = backupCreator.Create(gdCtx)
+			if err != nil {
+				log.WithError(err).Error("Failed to create backup while shutting down")
+				return err
+			}
+		}
+
+		return httpServer.Shutdown(gdCtx)
 	})
 
 	if err := g.Wait(); err != nil {
-		return err
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
 	}
+
+	log.Info("Server shutdown gracefully")
 
 	return nil
 }

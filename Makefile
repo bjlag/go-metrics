@@ -47,5 +47,7 @@ test:
 	go test ./...
 
 cover:
-	go test -coverpkg=./... -coverprofile=coverage.out ./...
-	go tool cover -func=coverage.out
+	go test -coverpkg='./internal/...','./cmd' -coverprofile coverage.out.tmp ./... \
+    	&& cat coverage.out.tmp | grep -v "_mock.go" > coverage.out \
+    	&& rm coverage.out.tmp \
+    	&& go tool cover -func coverage.out

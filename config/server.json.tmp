@@ -1,0 +1,11 @@
+{
+  "address": "localhost:8080",
+  "restore": true,
+  "store_interval": "1s",
+  "store_file": "./data/metrics.json",
+  "database_dsn": "postgresql://postgres:local@localhost:5432/metrics?sslmode=disable",
+  "crypto_key": "./cert/private.pem",
+  "log_level": "info",
+  "file_storage_path": "data/metrics.json",
+  "key": "secret"
+}
