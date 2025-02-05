@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -34,12 +35,13 @@ const (
 //
 // [go resty]: https://github.com/go-resty/resty
 type MetricSender struct {
-	client  *resty.Client
-	sign    *signature.SignManager
-	crypt   *crypt.EncryptManager
-	limiter *limiter.RateLimiter
-	baseURL string
-	log     log
+	client   *resty.Client
+	clientIP net.IP
+	sign     *signature.SignManager
+	crypt    *crypt.EncryptManager
+	limiter  *limiter.RateLimiter
+	baseURL  string
+	log      log
 }
 
 // NewHTTPSender создает клиент.
@@ -51,12 +53,13 @@ func NewHTTPSender(host string, port int, sign *signature.SignManager, crypt *cr
 	client.SetRetryMaxWaitTime(retryMaxWaitTime)
 
 	return &MetricSender{
-		client:  client,
-		sign:    sign,
-		crypt:   crypt,
-		limiter: limiter,
-		baseURL: fmt.Sprintf(baseURLTemplate, host, port),
-		log:     log,
+		client:   client,
+		clientIP: getOutboundIP(),
+		sign:     sign,
+		crypt:    crypt,
+		limiter:  limiter,
+		baseURL:  fmt.Sprintf(baseURLTemplate, host, port),
+		log:      log,
 	}
 }
 
@@ -109,6 +112,7 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("Accept-Encoding", "gzip").
+		SetHeader("X-Real-IP", s.clientIP.String()).
 		SetBody(compressed)
 
 	if s.sign.Enable() {
@@ -150,4 +154,16 @@ func compress(src []byte) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	return conn.LocalAddr().(*net.UDPAddr).IP
 }
