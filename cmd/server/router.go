@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"net/http"
 	"net/http/pprof"
 
@@ -29,11 +30,21 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(htmlRenderer *renderer.HTMLRenderer, storage storage.Repository, db *sqlx.DB, backup backup.Creator, singManager *signature.SignManager, crypt *crypt.DecryptManager, log logger.Logger) *chi.Mux {
+func initRouter(
+	htmlRenderer *renderer.HTMLRenderer,
+	storage storage.Repository,
+	db *sqlx.DB,
+	backup backup.Creator,
+	singManager *signature.SignManager,
+	crypt *crypt.DecryptManager,
+	trustedSubnet *net.IPNet,
+	log logger.Logger,
+) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(
 		middleware.LogMiddleware(log),
+		middleware.CheckRealIPMiddleware(trustedSubnet, log),
 		middleware.GzipMiddleware(log),
 		middleware.DecryptMiddleware(crypt, log),
 	)
