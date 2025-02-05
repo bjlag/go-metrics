@@ -123,7 +123,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 	httpServer := &http.Server{
 		Addr:    cfg.Address.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, log),
+		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, cfg.TrustedSubnet, log),
 	}
 
 	g, gCtx := errgroup.WithContext(ctx)
