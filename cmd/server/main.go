@@ -2,18 +2,14 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	nativLog "log"
-	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/server/config"
+	"github.com/bjlag/go-metrics/cmd/server/http"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
@@ -29,8 +25,7 @@ import (
 )
 
 const (
-	tmplPath  = "web/tmpl/list.html"
-	gdTimeout = 10 * time.Second
+	tmplPath = "web/tmpl/list.html"
 )
 
 var (
@@ -79,11 +74,11 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 
 	db := initDB(cfg.DatabaseDSN, log)
 
-	var store storage.Repository
+	var repo storage.Repository
 	if db != nil {
-		store = pg.NewStorage(db, log)
+		repo = pg.NewStorage(db, log)
 	} else {
-		store = memory.NewStorage()
+		repo = memory.NewStorage()
 	}
 
 	backupStore, err := file.NewStorage(cfg.FileStoragePath)
@@ -93,7 +88,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	}
 
 	if cfg.Restore {
-		err = restoreData(ctx, backupStore, store)
+		err = restoreData(ctx, backupStore, repo)
 		if err != nil {
 			log.WithError(err).Error("Failed to load backup data")
 		}
@@ -107,9 +102,9 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	)
 
 	if cfg.StoreInterval <= 0 {
-		backupCreator = syncBackup.New(store, backupStore, log)
+		backupCreator = syncBackup.New(repo, backupStore, log)
 	} else {
-		asyncBackupCreator = asyncBackup.New(store, backupStore, cfg.StoreInterval, log)
+		asyncBackupCreator = asyncBackup.New(repo, backupStore, cfg.StoreInterval, log)
 		asyncBackupCreator.Start(ctx)
 		backupCreator = asyncBackupCreator
 	}
@@ -121,40 +116,22 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
-	httpServer := &http.Server{
-		Addr:    cfg.Address.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, cfg.TrustedSubnet, log),
-	}
 
-	g, gCtx := errgroup.WithContext(ctx)
+	httpServer := http.NewServer(
+		cfg.Address.String(),
+		htmlRenderer,
+		repo,
+		db,
+		backupCreator,
+		signManager,
+		cryptManager,
+		cfg.TrustedSubnet,
+		log,
+	)
 
-	g.Go(func() error {
-		return httpServer.ListenAndServe()
-	})
-
-	g.Go(func() error {
-		<-gCtx.Done()
-
-		gdCtx, cancel := context.WithTimeout(context.Background(), gdTimeout)
-		defer cancel()
-
-		if asyncBackupCreator != nil {
-			asyncBackupCreator.Stop(gdCtx)
-		} else {
-			err = backupCreator.Create(gdCtx)
-			if err != nil {
-				log.WithError(err).Error("Failed to create backup while shutting down")
-				return err
-			}
-		}
-
-		return httpServer.Shutdown(gdCtx)
-	})
-
-	if err := g.Wait(); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
+	err = httpServer.Start(ctx)
+	if err != nil {
+		return err
 	}
 
 	log.Info("Server shutdown gracefully")

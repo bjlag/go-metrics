@@ -1,16 +1,22 @@
-package main
+package http
 
 import (
+	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/bjlag/go-metrics/internal/backup"
+	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
+	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/handler/list"
 	"github.com/bjlag/go-metrics/internal/handler/ping"
 	updateBatch "github.com/bjlag/go-metrics/internal/handler/update/batch"
@@ -30,62 +36,138 @@ import (
 	"github.com/bjlag/go-metrics/internal/storage"
 )
 
-func initRouter(
+const (
+	gdTimeout = 10 * time.Second
+)
+
+type Server struct {
+	addr          string
+	htmlRenderer  *renderer.HTMLRenderer
+	repo          storage.Repository
+	db            *sqlx.DB
+	backup        backup.Creator
+	singManager   *signature.SignManager
+	cryptManager  *crypt.DecryptManager
+	trustedSubnet *net.IPNet
+	log           logger.Logger
+}
+
+func NewServer(
+	addr string,
 	htmlRenderer *renderer.HTMLRenderer,
-	storage storage.Repository,
+	repo storage.Repository,
 	db *sqlx.DB,
 	backup backup.Creator,
 	singManager *signature.SignManager,
-	crypt *crypt.DecryptManager,
+	cryptManager *crypt.DecryptManager,
 	trustedSubnet *net.IPNet,
 	log logger.Logger,
-) *chi.Mux {
+) *Server {
+	return &Server{
+		addr:          addr,
+		htmlRenderer:  htmlRenderer,
+		repo:          repo,
+		db:            db,
+		backup:        backup,
+		singManager:   singManager,
+		cryptManager:  cryptManager,
+		trustedSubnet: trustedSubnet,
+		log:           log,
+	}
+}
+
+func (s *Server) Start(ctx context.Context) error {
+	httpServer := &http.Server{
+		Addr:    s.addr,
+		Handler: s.router(),
+	}
+
+	g, gCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return httpServer.ListenAndServe()
+	})
+
+	g.Go(func() error {
+		<-gCtx.Done()
+
+		s.log.Info("Shutting down HTTP server")
+
+		gdCtx, cancel := context.WithTimeout(context.Background(), gdTimeout)
+		defer cancel()
+
+		switch b := s.backup.(type) {
+		case *asyncBackup.Backup:
+			b.Stop(gdCtx)
+		case *syncBackup.Backup:
+			err := b.Create(gdCtx)
+			if err != nil {
+				s.log.WithError(err).Error("Failed to create backup while shutting down")
+				return err
+			}
+		default:
+			return errors.New("unknown backup type")
+		}
+
+		return httpServer.Shutdown(gdCtx)
+	})
+
+	if err := g.Wait(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
-		middleware.LogMiddleware(log),
-		middleware.CheckRealIPMiddleware(trustedSubnet, log),
-		middleware.GzipMiddleware(log),
-		middleware.DecryptMiddleware(crypt, log),
+		middleware.LogMiddleware(s.log),
+		middleware.CheckRealIPMiddleware(s.trustedSubnet, s.log),
+		middleware.GzipMiddleware(s.log),
+		middleware.DecryptMiddleware(s.cryptManager, s.log),
 	)
 
 	r.Route("/", func(r chi.Router) {
 		r.With(middleware.HeaderResponseMiddleware("Content-Type", "text/html")).
-			Get("/", list.NewHandler(htmlRenderer, storage, log).Handle)
+			Get("/", list.NewHandler(s.htmlRenderer, s.repo, s.log).Handle)
 	})
 
 	r.Route("/update", func(r chi.Router) {
 		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
 		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
-		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(storage, backup, log).Handle)
-		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(storage, backup, log).Handle)
-		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(storage, backup, log).Handle)
-		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler(log).Handle)
+		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(s.repo, s.backup, s.log).Handle)
+		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(s.repo, s.backup, s.log).Handle)
+		r.With(textContentType).Post("/counter/{name}/{value}", updateCounter.NewHandler(s.repo, s.backup, s.log).Handle)
+		r.With(textContentType).Post("/{kind}/{name}/{value}", updateUnknown.NewHandler(s.log).Handle)
 	})
 
 	r.Route("/updates", func(r chi.Router) {
 		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
-		validateSignRequest := middleware.SignatureMiddleware(singManager, log)
+		validateSignRequest := middleware.SignatureMiddleware(s.singManager, s.log)
 
 		r.
 			With(jsonContentType).
 			With(validateSignRequest).
-			Post("/", updateBatch.NewHandler(storage, backup, log).Handle)
+			Post("/", updateBatch.NewHandler(s.repo, s.backup, s.log).Handle)
 	})
 
 	r.Route("/value", func(r chi.Router) {
 		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
 		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
-		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(storage, log).Handle)
-		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(storage, log).Handle)
-		r.With(textContentType).Get("/counter/{name}", valueCaunter.NewHandler(storage, log).Handle)
-		r.With(textContentType).Get("/{kind}/{name}", valueUnknown.NewHandler(log).Handle)
+		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(s.repo, s.log).Handle)
+		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(s.repo, s.log).Handle)
+		r.With(textContentType).Get("/counter/{name}", valueCaunter.NewHandler(s.repo, s.log).Handle)
+		r.With(textContentType).Get("/{kind}/{name}", valueUnknown.NewHandler(s.log).Handle)
 	})
 
 	r.Route("/ping", func(r chi.Router) {
-		r.Get("/", ping.NewHandler(db, log).Handle)
+		r.Get("/", ping.NewHandler(s.db, s.log).Handle)
 	})
 
 	r.Route("/debug/pprof", func(r chi.Router) {
