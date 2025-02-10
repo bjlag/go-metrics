@@ -1,7 +1,7 @@
 //go:generate mockgen -source ${GOFILE} -package mock -destination mock/contract_mock.go
 //go:generate mockgen -package mock -destination mock/logger_mock.go github.com/bjlag/go-metrics/internal/logger Logger
 
-package client
+package http
 
 import "github.com/bjlag/go-metrics/internal/logger"
 

@@ -13,7 +13,7 @@ import (
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
-	"github.com/bjlag/go-metrics/internal/agent/client"
+	"github.com/bjlag/go-metrics/internal/agent/client/http"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
@@ -70,7 +70,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
+	metricClient := http.NewHTTPSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
 
 	pollTicker := time.NewTicker(cfg.PollInterval)
 	defer pollTicker.Stop()
