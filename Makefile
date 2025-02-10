@@ -48,6 +48,9 @@ test:
 
 cover:
 	go test -coverpkg='./internal/...','./cmd' -coverprofile coverage.out.tmp ./... \
-    	&& cat coverage.out.tmp | grep -v "_mock.go" > coverage.out \
+    	&& cat coverage.out.tmp | egrep -v "_mock.go" > coverage.out \
     	&& rm coverage.out.tmp \
     	&& go tool cover -func coverage.out
+
+proto:
+	protoc --go_out=. --go_opt=paths=import --go-grpc_out=. --go-grpc_opt=paths=import proto/metric.proto
