@@ -82,6 +82,8 @@ func (s *Server) Start(ctx context.Context) error {
 		Handler: s.router(),
 	}
 
+	s.log.Info("Starting HTTP server")
+
 	g, gCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {

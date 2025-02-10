@@ -7,9 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/server/config"
 	"github.com/bjlag/go-metrics/cmd/server/http"
+	"github.com/bjlag/go-metrics/cmd/server/rpc"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
@@ -117,20 +120,41 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
-	httpServer := http.NewServer(
-		cfg.Address.String(),
-		htmlRenderer,
-		repo,
-		db,
-		backupCreator,
-		signManager,
-		cryptManager,
-		cfg.TrustedSubnet,
-		log,
-	)
+	g, gCtx := errgroup.WithContext(ctx)
 
-	err = httpServer.Start(ctx)
-	if err != nil {
+	g.Go(func() error {
+		server := http.NewServer(
+			cfg.Address.String(),
+			htmlRenderer,
+			repo,
+			db,
+			backupCreator,
+			signManager,
+			cryptManager,
+			cfg.TrustedSubnet,
+			log,
+		)
+
+		err = server.Start(gCtx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		server := rpc.NewServer(log)
+
+		err = server.Start(gCtx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		return err
 	}
 
