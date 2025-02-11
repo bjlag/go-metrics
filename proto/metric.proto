@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package metric;
+
+option go_package = "internal/generated/rpc";
+
+message UpdatesIn {
+  repeated Metric metrics = 1;
+}
+
+message Metric {
+  string id = 1;              // Название метрики
+  string type = 2;            // Тип метрики: gauge или counter
+  optional int64 delta = 3;   // Значение метрики в случае передачи counter
+  optional double value = 4;  // Значение метрики в случае передачи gauge
+}
+
+message UpdatesOut {
+  string error = 1;
+}
+
+service MetricService {
+  // Обновление метрик батчами
+  rpc Updates(UpdatesIn) returns (UpdatesOut);
+}

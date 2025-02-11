@@ -1,4 +1,4 @@
-package client_test
+package http_test
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/agent/client"
-	"github.com/bjlag/go-metrics/internal/agent/client/mock"
+	client "github.com/bjlag/go-metrics/internal/agent/client/http"
+	"github.com/bjlag/go-metrics/internal/agent/client/http/mock"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
