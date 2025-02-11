@@ -2,32 +2,36 @@ package rpc
 
 import (
 	"context"
-	"log"
 	"net"
 
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
-	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/model"
+	"github.com/bjlag/go-metrics/internal/storage"
 )
 
 type Server struct {
 	rpc.UnimplementedMetricServiceServer
 
-	log logger.Logger
+	repo   repo
+	backup backup
+	log    log
 }
 
-func NewServer(log logger.Logger) *Server {
+func NewServer(repo repo, backup backup, log log) *Server {
 	return &Server{
-		log: log,
+		repo:   repo,
+		backup: backup,
+		log:    log,
 	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
 	listen, err := net.Listen("tcp", ":3200")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	grpcServer := grpc.NewServer()
@@ -55,4 +59,59 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Server) Updates(ctx context.Context, in *rpc.UpdatesIn) (*rpc.UpdatesOut, error) {
+	s.log.Info("Received Updates")
+
+	if len(in.Metrics) == 0 {
+		return nil, nil
+	}
+
+	gauges := make([]storage.Gauge, 0, len(in.Metrics))
+	counters := make([]storage.Counter, 0, len(in.Metrics))
+
+	for _, m := range in.Metrics {
+		switch m.Type {
+		case model.TypeGauge:
+			if m.Value == nil {
+				s.log.Info("Invalid value")
+				continue
+			}
+
+			gauges = append(gauges, storage.Gauge{
+				ID:    m.Id,
+				Value: *m.Value,
+			})
+		case model.TypeCounter:
+			if m.Delta == nil {
+				s.log.Info("Invalid value")
+				continue
+			}
+
+			counters = append(counters, storage.Counter{
+				ID:    m.Id,
+				Value: *m.Delta,
+			})
+		}
+	}
+
+	err := s.repo.SetGauges(ctx, gauges)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to save gauges")
+		return nil, err
+	}
+
+	err = s.repo.AddCounters(ctx, counters)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to save counters")
+		return nil, err
+	}
+
+	err = s.backup.Create(ctx)
+	if err != nil {
+		s.log.WithError(err).Error("Failed to backup data")
+	}
+
+	return &rpc.UpdatesOut{}, nil
 }

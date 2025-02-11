@@ -44,8 +44,8 @@ type MetricSender struct {
 	log      log
 }
 
-// NewHTTPSender создает клиент.
-func NewHTTPSender(host string, port int, sign *signature.SignManager, crypt *crypt.EncryptManager, limiter *limiter.RateLimiter, log log) *MetricSender {
+// NewSender создает HTTP клиент.
+func NewSender(host string, port int, sign *signature.SignManager, crypt *crypt.EncryptManager, limiter *limiter.RateLimiter, log log) *MetricSender {
 	client := resty.New()
 	client.SetTimeout(timeout)
 	client.SetRetryCount(maxRetries)

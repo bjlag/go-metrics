@@ -114,7 +114,7 @@ func TestMetricSender_Send(t *testing.T) {
 
 			encryptManager, _ := crypt.NewEncryptManager("")
 
-			c := client.NewHTTPSender(
+			c := client.NewSender(
 				parts[0],
 				port,
 				signature.NewSignManager("secretKey"),

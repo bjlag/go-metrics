@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/bjlag/go-metrics/internal/agent/client/rpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	logNativ "log"
 	"os/signal"
 	"runtime"
@@ -13,12 +16,8 @@ import (
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
-	"github.com/bjlag/go-metrics/internal/agent/client/http"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
-	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
-	"github.com/bjlag/go-metrics/internal/securety/crypt"
-	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
 var (
@@ -62,15 +61,25 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer cancel()
 
-	cryptManager, err := crypt.NewEncryptManager(cfg.CryptoKeyPath)
+	//cryptManager, err := crypt.NewEncryptManager(cfg.CryptoKeyPath)
+	//if err != nil {
+	//	return err
+	//}
+
+	//signManager := signature.NewSignManager(cfg.SecretKey)
+	//rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
+	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
+	//metricClient := http.NewSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
+
+	grpcConn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = grpcConn.Close()
+	}()
 
-	signManager := signature.NewSignManager(cfg.SecretKey)
-	rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
-	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := http.NewHTTPSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
+	metricClient := rpc.NewSender(grpcConn)
 
 	pollTicker := time.NewTicker(cfg.PollInterval)
 	defer pollTicker.Stop()

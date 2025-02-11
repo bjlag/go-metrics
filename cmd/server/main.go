@@ -144,7 +144,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	})
 
 	g.Go(func() error {
-		server := rpc.NewServer(log)
+		server := rpc.NewServer(repo, backupCreator, log)
 
 		err = server.Start(gCtx)
 		if err != nil {

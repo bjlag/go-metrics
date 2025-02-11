@@ -1,6 +1,4 @@
-//go:generate mockgen -source ${GOFILE} -package mock -destination mock/contract_mock.go
-
-package batch
+package rpc
 
 import (
 	"context"
