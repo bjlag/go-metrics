@@ -49,15 +49,14 @@ func (c *metricServiceClient) Updates(ctx context.Context, in *UpdatesIn, opts .
 }
 
 // MetricServiceServer is the server API for MetricService service.
-// All implementations must embed UnimplementedMetricServiceServer
+// All implementations should embed UnimplementedMetricServiceServer
 // for forward compatibility.
 type MetricServiceServer interface {
 	// Обновление метрик батчами
 	Updates(context.Context, *UpdatesIn) (*UpdatesOut, error)
-	mustEmbedUnimplementedMetricServiceServer()
 }
 
-// UnimplementedMetricServiceServer must be embedded to have
+// UnimplementedMetricServiceServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -67,8 +66,7 @@ type UnimplementedMetricServiceServer struct{}
 func (UnimplementedMetricServiceServer) Updates(context.Context, *UpdatesIn) (*UpdatesOut, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Updates not implemented")
 }
-func (UnimplementedMetricServiceServer) mustEmbedUnimplementedMetricServiceServer() {}
-func (UnimplementedMetricServiceServer) testEmbeddedByValue()                       {}
+func (UnimplementedMetricServiceServer) testEmbeddedByValue() {}
 
 // UnsafeMetricServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to MetricServiceServer will

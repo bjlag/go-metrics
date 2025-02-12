@@ -52,5 +52,5 @@ cover:
     	&& rm coverage.out.tmp \
     	&& go tool cover -func coverage.out
 
-proto:
-	protoc --go_out=. --go_opt=paths=import --go-grpc_out=. --go-grpc_opt=paths=import proto/metric.proto
+gen-proto:
+	protoc --go_out=. --go_opt=paths=import --go-grpc_out=. --go-grpc_opt=paths=import --go-grpc_opt=require_unimplemented_servers=false proto/metric.proto

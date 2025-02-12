@@ -19,6 +19,7 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/rpc/updates"
 	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -144,7 +145,8 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	})
 
 	g.Go(func() error {
-		server := rpc.NewServer(repo, backupCreator, log)
+		server := rpc.NewServer(log)
+		server.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
 
 		err = server.Start(gCtx)
 		if err != nil {

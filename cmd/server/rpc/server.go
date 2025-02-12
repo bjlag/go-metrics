@@ -6,26 +6,33 @@ import (
 
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
-	"github.com/bjlag/go-metrics/internal/model"
-	"github.com/bjlag/go-metrics/internal/storage"
+	"github.com/bjlag/go-metrics/internal/logger"
+)
+
+const (
+	UpdatesMethodName = "updates"
 )
 
 type Server struct {
 	rpc.UnimplementedMetricServiceServer
 
-	repo   repo
-	backup backup
-	log    log
+	methods map[string]any
+	log     logger.Logger
 }
 
-func NewServer(repo repo, backup backup, log log) *Server {
+func NewServer(log logger.Logger) *Server {
 	return &Server{
-		repo:   repo,
-		backup: backup,
-		log:    log,
+		methods: make(map[string]any),
+		log:     log,
 	}
+}
+
+func (s *Server) AddMethod(name string, method any) {
+	s.methods[name] = method
 }
 
 func (s *Server) Start(ctx context.Context) error {
@@ -62,56 +69,10 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) Updates(ctx context.Context, in *rpc.UpdatesIn) (*rpc.UpdatesOut, error) {
-	s.log.Info("Received Updates")
-
-	if len(in.Metrics) == 0 {
-		return nil, nil
+	method, ok := s.methods[UpdatesMethodName]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "unknown method: %s", UpdatesMethodName)
 	}
 
-	gauges := make([]storage.Gauge, 0, len(in.Metrics))
-	counters := make([]storage.Counter, 0, len(in.Metrics))
-
-	for _, m := range in.Metrics {
-		switch m.Type {
-		case model.TypeGauge:
-			if m.Value == nil {
-				s.log.Info("Invalid value")
-				continue
-			}
-
-			gauges = append(gauges, storage.Gauge{
-				ID:    m.Id,
-				Value: *m.Value,
-			})
-		case model.TypeCounter:
-			if m.Delta == nil {
-				s.log.Info("Invalid value")
-				continue
-			}
-
-			counters = append(counters, storage.Counter{
-				ID:    m.Id,
-				Value: *m.Delta,
-			})
-		}
-	}
-
-	err := s.repo.SetGauges(ctx, gauges)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to save gauges")
-		return nil, err
-	}
-
-	err = s.repo.AddCounters(ctx, counters)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to save counters")
-		return nil, err
-	}
-
-	err = s.backup.Create(ctx)
-	if err != nil {
-		s.log.WithError(err).Error("Failed to backup data")
-	}
-
-	return &rpc.UpdatesOut{}, nil
+	return method.(func(context.Context, *rpc.UpdatesIn) (*rpc.UpdatesOut, error))(ctx, in)
 }
