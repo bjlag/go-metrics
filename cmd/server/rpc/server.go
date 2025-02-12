@@ -20,12 +20,14 @@ const (
 type Server struct {
 	rpc.UnimplementedMetricServiceServer
 
+	addr    string
 	methods map[string]any
 	log     logger.Logger
 }
 
-func NewServer(log logger.Logger) *Server {
+func NewServer(addr string, log logger.Logger) *Server {
 	return &Server{
+		addr:    addr,
 		methods: make(map[string]any),
 		log:     log,
 	}
@@ -36,7 +38,7 @@ func (s *Server) AddMethod(name string, method any) {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	listen, err := net.Listen("tcp", ":3200")
+	listen, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
 	}

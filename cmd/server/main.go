@@ -58,7 +58,8 @@ func main() {
 	log.Info(build.DateString())
 	log.Info(build.CommitString())
 
-	log.WithField("address", cfg.Address.String()).Info("Starting server")
+	log.WithField("address", cfg.AddressHTTP.String()).Info("Starting HTTP server")
+	log.WithField("address", cfg.AddressRPC.String()).Info("Starting RPC server")
 	log.Info(fmt.Sprintf("Log level '%s'", cfg.LogLevel))
 	log.Info(fmt.Sprintf("Store interval %s", cfg.StoreInterval))
 	log.Info(fmt.Sprintf("File storage path '%s'", cfg.FileStoragePath))
@@ -121,41 +122,38 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
 
+	serverHTTP := http.NewServer(
+		cfg.AddressHTTP.String(),
+		htmlRenderer,
+		repo,
+		db,
+		backupCreator,
+		signManager,
+		cryptManager,
+		cfg.TrustedSubnet,
+		log,
+	)
+
+	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), log)
+	serverRPC.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
+
 	g, gCtx := errgroup.WithContext(ctx)
-
 	g.Go(func() error {
-		server := http.NewServer(
-			cfg.Address.String(),
-			htmlRenderer,
-			repo,
-			db,
-			backupCreator,
-			signManager,
-			cryptManager,
-			cfg.TrustedSubnet,
-			log,
-		)
-
-		err = server.Start(gCtx)
+		err = serverHTTP.Start(gCtx)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	})
-
 	g.Go(func() error {
-		server := rpc.NewServer(log)
-		server.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
-
-		err = server.Start(gCtx)
+		err = serverRPC.Start(gCtx)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	})
-
 	if err := g.Wait(); err != nil {
 		return err
 	}

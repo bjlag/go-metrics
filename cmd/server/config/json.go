@@ -8,7 +8,8 @@ import (
 )
 
 type jsonConfig struct {
-	Address         *address       `json:"address,omitempty"`
+	AddressHTTP     *address       `json:"address,omitempty"`
+	AddressRPC      *address       `json:"address_rpc,omitempty"`
 	Restore         *bool          `json:"restore,omitempty"`
 	StoreInterval   *time.Duration `json:"store_interval,omitempty"`
 	StoreFile       *string        `json:"store_file,omitempty"`
@@ -25,7 +26,8 @@ func (c *jsonConfig) UnmarshalJSON(b []byte) error {
 
 	aliasValue := &struct {
 		*alias
-		Address       *string `json:"address,omitempty"`
+		AddressHTTP   *string `json:"address,omitempty"`
+		AddressRPC    *string `json:"address_rpc,omitempty"`
 		StoreInterval *string `json:"store_interval,omitempty"`
 		TrustedSubnet *string `json:"trusted_subnet,omitempty"`
 	}{
@@ -37,13 +39,22 @@ func (c *jsonConfig) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("unmarshal JSON config error: %w", err)
 	}
 
-	if aliasValue.Address != nil && *aliasValue.Address != "" {
-		host, port, err := parseHostAndPort(*aliasValue.Address)
+	if aliasValue.AddressHTTP != nil && *aliasValue.AddressHTTP != "" {
+		host, port, err := parseHostAndPort(*aliasValue.AddressHTTP)
 		if err != nil {
 			return fmt.Errorf("parse address error: %w", err)
 		}
 
-		c.Address = &address{host, port}
+		c.AddressHTTP = &address{host, port}
+	}
+
+	if aliasValue.AddressRPC != nil && *aliasValue.AddressRPC != "" {
+		host, port, err := parseHostAndPort(*aliasValue.AddressRPC)
+		if err != nil {
+			return fmt.Errorf("parse address error: %w", err)
+		}
+
+		c.AddressRPC = &address{host, port}
 	}
 
 	if aliasValue.StoreInterval != nil && *aliasValue.StoreInterval != "" {

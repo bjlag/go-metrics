@@ -34,6 +34,7 @@ func (o *address) Set(value string) error {
 
 const (
 	envAddress         = "ADDRESS"
+	envAddressRPC      = "ADDRESS_RPC"
 	envDatabaseDSN     = "DATABASE_DSN"
 	envLogLevel        = "LOG_LEVEL"
 	envStoreInterval   = "STORE_INTERVAL"
@@ -47,7 +48,8 @@ const (
 
 type Configuration struct {
 	LogLevel        string
-	Address         *address
+	AddressHTTP     *address
+	AddressRPC      *address
 	DatabaseDSN     string
 	StoreInterval   time.Duration
 	FileStoragePath string
@@ -60,7 +62,11 @@ type Configuration struct {
 
 func LoadConfig() *Configuration {
 	c := &Configuration{
-		Address: &address{},
+		AddressHTTP: &address{},
+		AddressRPC: &address{
+			Host: "localhost",
+			Port: 3200,
+		},
 	}
 
 	c.parseFlags()
@@ -71,9 +77,11 @@ func LoadConfig() *Configuration {
 }
 
 func (c *Configuration) parseFlags() {
-	_ = flag.Value(c.Address)
+	_ = flag.Value(c.AddressHTTP)
+	_ = flag.Value(c.AddressRPC)
 
-	flag.Var(c.Address, "a", "Server address: host:port")
+	flag.Var(c.AddressHTTP, "a", "Server HTTP address: host:port")
+	flag.Var(c.AddressRPC, "address-rpc", "Server RPC address: host:port")
 	flag.StringVar(&c.DatabaseDSN, "d", "", "Database DSN")
 	flag.StringVar(&c.LogLevel, "l", "", "Log level")
 
@@ -113,7 +121,16 @@ func (c *Configuration) parseEnvs() {
 	if value := os.Getenv(envAddress); value != "" {
 		var err error
 
-		c.Address.Host, c.Address.Port, err = parseHostAndPort(value)
+		c.AddressHTTP.Host, c.AddressHTTP.Port, err = parseHostAndPort(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if value := os.Getenv(envAddressRPC); value != "" {
+		var err error
+
+		c.AddressRPC.Host, c.AddressRPC.Port, err = parseHostAndPort(value)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -185,8 +202,12 @@ func (c *Configuration) parseJSONConfig() {
 		log.Fatal(err)
 	}
 
-	if c.Address.Host == "" && c.Address.Port <= 0 && parsedConfig.Address != nil {
-		c.Address = parsedConfig.Address
+	if c.AddressHTTP.Host == "" && c.AddressHTTP.Port <= 0 && parsedConfig.AddressHTTP != nil {
+		c.AddressHTTP = parsedConfig.AddressHTTP
+	}
+
+	if c.AddressRPC.Host == "" && c.AddressRPC.Port <= 0 && parsedConfig.AddressRPC != nil {
+		c.AddressRPC = parsedConfig.AddressRPC
 	}
 
 	if c.DatabaseDSN == "" && parsedConfig.DatabaseDSN != nil {

@@ -69,7 +69,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	//signManager := signature.NewSignManager(cfg.SecretKey)
 	//rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	//metricClient := http.NewSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
+	//metricClient := http.NewSender(cfg.AddressHTTP.Host, cfg.AddressHTTP.Port, signManager, cryptManager, rateLimiter, log)
 
 	grpcConn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
