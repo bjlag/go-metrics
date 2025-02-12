@@ -15,9 +15,14 @@ import (
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
+	agent "github.com/bjlag/go-metrics/internal/agent/client"
+	"github.com/bjlag/go-metrics/internal/agent/client/http"
 	"github.com/bjlag/go-metrics/internal/agent/client/rpc"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
+	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/securety/crypt"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
 var (
@@ -69,28 +74,40 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer cancel()
 
-	//cryptManager, err := crypt.NewEncryptManager(cfg.CryptoKeyPath)
-	//if err != nil {
-	//	return err
-	//}
-
-	//signManager := signature.NewSignManager(cfg.SecretKey)
-	//rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
-	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	//metricClient := http.NewSender(cfg.AddressHTTP.Host, cfg.AddressHTTP.Port, signManager, cryptManager, rateLimiter, log)
-
-	grpcConn, err := grpc.NewClient(cfg.AddressRPC.String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	cryptManager, err := crypt.NewEncryptManager(cfg.CryptoKeyPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = grpcConn.Close()
-	}()
 
-	metricClient := rpc.NewSender(grpcConn)
+	signManager := signature.NewSignManager(cfg.SecretKey)
+	rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
+	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
+
+	var client agent.Client
+
+	if cfg.AddressRPC != nil {
+		grpcConn, err := grpc.NewClient(cfg.AddressRPC.String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = grpcConn.Close()
+		}()
+
+		client = rpc.NewSender(grpcConn)
+	}
+
+	if client == nil && cfg.AddressHTTP != nil {
+		client = http.NewSender(cfg.AddressHTTP.Host, cfg.AddressHTTP.Port, signManager, cryptManager, rateLimiter, log)
+	}
+
+	if client == nil {
+		return fmt.Errorf("could not create client")
+	}
 
 	pollTicker := time.NewTicker(cfg.PollInterval)
 	defer pollTicker.Stop()
+
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 	defer reportTicker.Stop()
 
@@ -109,7 +126,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 					collector.NewCounterMetric("PollCount", 1),
 				}
 
-				if err := metricClient.Send(metrics); err != nil {
+				if err := client.Send(metrics); err != nil {
 					log.WithError(err).Error("Error in sending poll count")
 				}
 			}
@@ -132,7 +149,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 					continue
 				}
 
-				if err := metricClient.Send(metrics); err != nil {
+				if err := client.Send(metrics); err != nil {
 					log.WithError(err).Error("Error in sending report")
 				}
 			}
