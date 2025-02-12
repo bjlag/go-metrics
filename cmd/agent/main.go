@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/bjlag/go-metrics/internal/agent/client/rpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	logNativ "log"
 	"os/signal"
 	"runtime"
@@ -13,9 +10,12 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
+	"github.com/bjlag/go-metrics/internal/agent/client/rpc"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/logger"
 )
@@ -43,7 +43,15 @@ func main() {
 	log.Info(build.CommitString())
 
 	log.Info("Starting agent")
-	log.Info(fmt.Sprintf("Sending metrics to %s", cfg.Address.String()))
+
+	protocol := "HTTP"
+	address := cfg.AddressHTTP
+	if cfg.AddressRPC != nil {
+		protocol = "RPC"
+		address = cfg.AddressRPC
+	}
+
+	log.Info(fmt.Sprintf("Sending metrics to %s server: %s", protocol, address.String()))
 	log.Info(fmt.Sprintf("Poll interval is %s", cfg.PollInterval))
 	log.Info(fmt.Sprintf("Report interval is %s", cfg.ReportInterval))
 	log.Info(fmt.Sprintf("Log level is '%s'", cfg.LogLevel))
@@ -71,7 +79,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
 	//metricClient := http.NewSender(cfg.AddressHTTP.Host, cfg.AddressHTTP.Port, signManager, cryptManager, rateLimiter, log)
 
-	grpcConn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcConn, err := grpc.NewClient(cfg.AddressRPC.String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
