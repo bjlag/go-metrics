@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc"
 
@@ -9,6 +10,8 @@ import (
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
 	"github.com/bjlag/go-metrics/internal/logger"
 )
+
+const timeout = 200 * time.Millisecond
 
 type MetricSender struct {
 	client rpc.MetricServiceClient
@@ -56,7 +59,10 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		inMetrics = append(inMetrics, inMetric)
 	}
 
-	_, err := s.client.Updates(context.Background(), &rpc.UpdatesIn{Metrics: inMetrics})
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	_, err := s.client.Updates(ctx, &rpc.UpdatesIn{Metrics: inMetrics})
 	if err != nil {
 		return err
 	}
