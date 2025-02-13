@@ -11,6 +11,7 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
 	"github.com/bjlag/go-metrics/internal/logger"
+	"github.com/bjlag/go-metrics/internal/rpc/interceptor"
 )
 
 const (
@@ -43,7 +44,11 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interceptor.LoggerServerInterceptor(s.log),
+		),
+	)
 	rpc.RegisterMetricServiceServer(grpcServer, s)
 
 	s.log.Info("Starting gRPC server")

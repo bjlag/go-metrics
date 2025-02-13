@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
@@ -86,15 +84,10 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	var client agent.Client
 
 	if cfg.AddressRPC != nil {
-		grpcConn, err := grpc.NewClient(cfg.AddressRPC.String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return err
-		}
+		client = rpc.NewSender(cfg.AddressRPC.String(), signManager, log)
 		defer func() {
-			_ = grpcConn.Close()
+			_ = client.(*rpc.MetricSender).Close()
 		}()
-
-		client = rpc.NewSender(grpcConn, log)
 	}
 
 	if client == nil && cfg.AddressHTTP != nil {

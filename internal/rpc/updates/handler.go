@@ -26,8 +26,6 @@ func NewHandler(repo repo, backup backup, log log) *Handler {
 }
 
 func (h *Handler) Updates(ctx context.Context, in *rpc.UpdatesIn) (*rpc.UpdatesOut, error) {
-	h.log.Info("Received Updates")
-
 	if len(in.Metrics) == 0 {
 		return nil, nil
 	}

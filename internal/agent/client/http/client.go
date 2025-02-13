@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
+	clientIP "github.com/bjlag/go-metrics/internal/agent/client"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/model"
@@ -54,7 +55,7 @@ func NewSender(host string, port int, sign *signature.SignManager, crypt *crypt.
 
 	return &MetricSender{
 		client:   client,
-		clientIP: getOutboundIP(),
+		clientIP: clientIP.GetOutboundIP(),
 		sign:     sign,
 		crypt:    crypt,
 		limiter:  limiter,
@@ -154,16 +155,4 @@ func compress(src []byte) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-func getOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	return conn.LocalAddr().(*net.UDPAddr).IP
 }
