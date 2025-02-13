@@ -12,6 +12,7 @@ import (
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/rpc/interceptor"
+	"github.com/bjlag/go-metrics/internal/securety/signature"
 )
 
 const (
@@ -24,15 +25,17 @@ type Server struct {
 	methods       map[string]any
 	addr          string
 	trustedSubnet *net.IPNet
+	singManager   *signature.SignManager
 	log           logger.Logger
 }
 
-func NewServer(addr string, trustedSubnet *net.IPNet, log logger.Logger) *Server {
+func NewServer(addr string, trustedSubnet *net.IPNet, singManager *signature.SignManager, log logger.Logger) *Server {
 	return &Server{
 		methods: make(map[string]any),
 
 		addr:          addr,
 		trustedSubnet: trustedSubnet,
+		singManager:   singManager,
 		log:           log,
 	}
 }
@@ -50,7 +53,8 @@ func (s *Server) Start(ctx context.Context) error {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.LoggerServerInterceptor(s.log),
-			interceptor.CheckRealIPMiddleware(s.trustedSubnet, s.log),
+			interceptor.CheckRealIPServerMiddleware(s.trustedSubnet),
+			interceptor.CheckSignatureServerInterceptor(s.singManager),
 		),
 	)
 	rpc.RegisterMetricServiceServer(grpcServer, s)

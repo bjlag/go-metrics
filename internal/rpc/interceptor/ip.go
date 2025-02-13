@@ -10,13 +10,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	clientIP "github.com/bjlag/go-metrics/internal/agent/client"
-	"github.com/bjlag/go-metrics/internal/logger"
 )
 
 const RealIPMeta = "real-ip"
 
-func RealIPInterceptor(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	md, ok := metadata.FromIncomingContext(ctx)
+func RealIPClientInterceptor(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
 		md = metadata.New(nil)
 	}
@@ -28,7 +27,7 @@ func RealIPInterceptor(ctx context.Context, method string, req, reply any, cc *g
 	return invoker(ctx, method, req, reply, cc, opts...)
 }
 
-func CheckRealIPMiddleware(trustedSubnet *net.IPNet, logger logger.Logger) grpc.UnaryServerInterceptor {
+func CheckRealIPServerMiddleware(trustedSubnet *net.IPNet) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {

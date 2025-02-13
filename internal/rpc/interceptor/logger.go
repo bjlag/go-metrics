@@ -12,8 +12,12 @@ import (
 func LoggerClientInterceptor(log logger.Logger) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
-		log.WithField("method", method).
+
+		log.
+			WithField("method", method).
+			WithField("code", status.Code(err)).
 			Info("Send RPC request")
+
 		return err
 	}
 }

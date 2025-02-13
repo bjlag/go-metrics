@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/bjlag/go-metrics/internal/rpc/handler/updates"
 	nativLog "log"
 	"os/signal"
 	"syscall"
@@ -20,6 +19,7 @@ import (
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/rpc/handler/updates"
 	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -134,7 +134,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 		log,
 	)
 
-	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), cfg.TrustedSubnet, log)
+	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), cfg.TrustedSubnet, signManager, log)
 	serverRPC.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
 
 	g, gCtx := errgroup.WithContext(ctx)

@@ -32,7 +32,8 @@ func NewSender(addr string, sign *signature.SignManager, log logger.Logger) *Met
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			interceptor.LoggerClientInterceptor(log),
-			interceptor.RealIPInterceptor,
+			interceptor.RealIPClientInterceptor,
+			interceptor.SignatureClientInterceptor(sign),
 		),
 	)
 	if err != nil {
@@ -86,21 +87,6 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-
-	//mdMap := map[string]string{
-	//	"RealIP": s.clientIP.String(),
-	//}
-
-	//if s.sign.Enable() {
-	//	jsonb, err := json.Marshal(inMetrics)
-	//	if err != nil {
-	//		return fmt.Errorf("failed to marshal metric: %s", err)
-	//	}
-	//
-	//	mdMap["HashSHA256"] = s.sign.Sing(jsonb)
-	//}
-
-	//ctx = metadata.NewOutgoingContext(ctx, metadata.New(mdMap))
 
 	_, err := s.client.Updates(ctx, &rpc.UpdatesIn{Metrics: inMetrics})
 	if err != nil {
