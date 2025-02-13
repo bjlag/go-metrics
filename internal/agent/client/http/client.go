@@ -130,7 +130,7 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 	s.log.WithField("uri", response.Request.URL).
 		WithField("response", string(response.Body())).
 		WithField("status", response.StatusCode()).
-		Info("sent request")
+		Info("Sent HTTP request")
 
 	return nil
 }

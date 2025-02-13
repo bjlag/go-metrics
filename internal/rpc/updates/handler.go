@@ -3,6 +3,9 @@ package updates
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
 	"github.com/bjlag/go-metrics/internal/model"
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -60,13 +63,13 @@ func (h *Handler) Updates(ctx context.Context, in *rpc.UpdatesIn) (*rpc.UpdatesO
 	err := h.repo.SetGauges(ctx, gauges)
 	if err != nil {
 		h.log.WithError(err).Error("Failed to save gauges")
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to save gauges")
 	}
 
 	err = h.repo.AddCounters(ctx, counters)
 	if err != nil {
 		h.log.WithError(err).Error("Failed to save counters")
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to save counters")
 	}
 
 	err = h.backup.Create(ctx)

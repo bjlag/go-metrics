@@ -94,7 +94,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 			_ = grpcConn.Close()
 		}()
 
-		client = rpc.NewSender(grpcConn)
+		client = rpc.NewSender(grpcConn, log)
 	}
 
 	if client == nil && cfg.AddressHTTP != nil {

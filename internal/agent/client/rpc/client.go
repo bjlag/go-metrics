@@ -7,16 +7,19 @@ import (
 
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/generated/rpc"
+	"github.com/bjlag/go-metrics/internal/logger"
 )
 
 type MetricSender struct {
 	client rpc.MetricServiceClient
+	log    logger.Logger
 }
 
 // NewSender создает RPC клиент.
-func NewSender(client *grpc.ClientConn) *MetricSender {
+func NewSender(client *grpc.ClientConn, log logger.Logger) *MetricSender {
 	return &MetricSender{
 		client: rpc.NewMetricServiceClient(client),
+		log:    log,
 	}
 }
 
@@ -53,11 +56,15 @@ func (s MetricSender) Send(metrics []*collector.Metric) error {
 		inMetrics = append(inMetrics, inMetric)
 	}
 
-	out, err := s.client.Updates(context.Background(), &rpc.UpdatesIn{Metrics: inMetrics})
+	_, err := s.client.Updates(context.Background(), &rpc.UpdatesIn{Metrics: inMetrics})
 	if err != nil {
+		return err
 	}
 
-	_ = out
+	s.log.
+		WithField("uri", "updates").
+		WithField("status", "success").
+		Info("Sent RPC request")
 
 	return nil
 }
