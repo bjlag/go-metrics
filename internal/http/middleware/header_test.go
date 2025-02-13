@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/middleware"
+	"github.com/bjlag/go-metrics/internal/http/middleware"
 )
 
 func TestHeaderResponseMiddleware(t *testing.T) {

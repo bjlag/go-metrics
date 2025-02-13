@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -33,6 +34,7 @@ func (o *address) Set(value string) error {
 
 const (
 	envAddress         = "ADDRESS"
+	envAddressRPC      = "ADDRESS_RPC"
 	envDatabaseDSN     = "DATABASE_DSN"
 	envLogLevel        = "LOG_LEVEL"
 	envStoreInterval   = "STORE_INTERVAL"
@@ -41,11 +43,13 @@ const (
 	envSecretKey       = "KEY"
 	envCryptoKey       = "CRYPTO_KEY"
 	envConfigPath      = "CONFIG"
+	envTrustedSubnet   = "TRUSTED_SUBNET"
 )
 
 type Configuration struct {
 	LogLevel        string
-	Address         *address
+	AddressHTTP     *address
+	AddressRPC      *address
 	DatabaseDSN     string
 	StoreInterval   time.Duration
 	FileStoragePath string
@@ -53,11 +57,16 @@ type Configuration struct {
 	SecretKey       string
 	CryptoKeyPath   string
 	ConfigPath      string
+	TrustedSubnet   *net.IPNet
 }
 
 func LoadConfig() *Configuration {
 	c := &Configuration{
-		Address: &address{},
+		AddressHTTP: &address{},
+		AddressRPC: &address{
+			Host: "localhost",
+			Port: 3200,
+		},
 	}
 
 	c.parseFlags()
@@ -68,11 +77,14 @@ func LoadConfig() *Configuration {
 }
 
 func (c *Configuration) parseFlags() {
-	_ = flag.Value(c.Address)
+	_ = flag.Value(c.AddressHTTP)
+	_ = flag.Value(c.AddressRPC)
 
-	flag.Var(c.Address, "a", "Server address: host:port")
+	flag.Var(c.AddressHTTP, "a", "Server HTTP address: host:port")
+	flag.Var(c.AddressRPC, "address-rpc", "Server RPC address: host:port")
 	flag.StringVar(&c.DatabaseDSN, "d", "", "Database DSN")
 	flag.StringVar(&c.LogLevel, "l", "", "Log level")
+
 	flag.Func("i", "Store interval in seconds", func(s string) error {
 		var err error
 
@@ -83,6 +95,7 @@ func (c *Configuration) parseFlags() {
 
 		return nil
 	})
+
 	flag.StringVar(&c.FileStoragePath, "f", "", "File storage path")
 	flag.BoolVar(&c.Restore, "r", false, "Restore metrics")
 	flag.StringVar(&c.SecretKey, "k", "", "Secret key")
@@ -90,54 +103,83 @@ func (c *Configuration) parseFlags() {
 	flag.StringVar(&c.ConfigPath, "c", "", "Path to config JSON file")
 	flag.StringVar(&c.ConfigPath, "config", "", "Path to config JSON file")
 
+	flag.Func("t", "Trusted subnet: 192.168.1.0/24", func(s string) error {
+		var err error
+
+		_, c.TrustedSubnet, err = net.ParseCIDR(s)
+		if err != nil {
+			return fmt.Errorf("parse CIDR error: %w", err)
+		}
+
+		return nil
+	})
+
 	flag.Parse()
 }
 
 func (c *Configuration) parseEnvs() {
-	if envAddressValue := os.Getenv(envAddress); envAddressValue != "" {
+	if value := os.Getenv(envAddress); value != "" {
 		var err error
 
-		c.Address.Host, c.Address.Port, err = parseHostAndPort(envAddressValue)
+		c.AddressHTTP.Host, c.AddressHTTP.Port, err = parseHostAndPort(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envDatabaseDSNValue := os.Getenv(envDatabaseDSN); envDatabaseDSNValue != "" {
-		c.DatabaseDSN = envDatabaseDSNValue
-	}
-
-	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
-		c.LogLevel = envLogLevelValue
-	}
-
-	if envStoreIntervalValue := os.Getenv(envStoreInterval); envStoreIntervalValue != "" {
+	if value := os.Getenv(envAddressRPC); value != "" {
 		var err error
 
-		c.StoreInterval, err = stringToDurationInSeconds(envStoreIntervalValue)
+		c.AddressRPC.Host, c.AddressRPC.Port, err = parseHostAndPort(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envFileStoragePathValue := os.Getenv(envFileStoragePath); envFileStoragePathValue != "" {
-		c.FileStoragePath = envFileStoragePathValue
+	if value := os.Getenv(envDatabaseDSN); value != "" {
+		c.DatabaseDSN = value
 	}
 
-	if envRestoreValue := os.Getenv(envRestore); envRestoreValue != "" {
+	if value := os.Getenv(envLogLevel); value != "" {
+		c.LogLevel = value
+	}
+
+	if value := os.Getenv(envStoreInterval); value != "" {
+		var err error
+
+		c.StoreInterval, err = stringToDurationInSeconds(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if value := os.Getenv(envFileStoragePath); value != "" {
+		c.FileStoragePath = value
+	}
+
+	if value := os.Getenv(envRestore); value != "" {
 		c.Restore = true
 	}
 
-	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
-		c.SecretKey = envSecretKeyValue
+	if value := os.Getenv(envSecretKey); value != "" {
+		c.SecretKey = value
 	}
 
-	if envCryptoKeyValue := os.Getenv(envCryptoKey); envCryptoKeyValue != "" {
-		c.CryptoKeyPath = envCryptoKeyValue
+	if value := os.Getenv(envCryptoKey); value != "" {
+		c.CryptoKeyPath = value
 	}
 
-	if envConfigPathValue := os.Getenv(envConfigPath); envConfigPathValue != "" {
-		c.ConfigPath = envConfigPathValue
+	if value := os.Getenv(envConfigPath); value != "" {
+		c.ConfigPath = value
+	}
+
+	if value := os.Getenv(envTrustedSubnet); value != "" {
+		var err error
+
+		_, c.TrustedSubnet, err = net.ParseCIDR(value)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -160,8 +202,12 @@ func (c *Configuration) parseJSONConfig() {
 		log.Fatal(err)
 	}
 
-	if c.Address.Host == "" && c.Address.Port <= 0 && parsedConfig.Address != nil {
-		c.Address = parsedConfig.Address
+	if c.AddressHTTP.Host == "" && c.AddressHTTP.Port <= 0 && parsedConfig.AddressHTTP != nil {
+		c.AddressHTTP = parsedConfig.AddressHTTP
+	}
+
+	if c.AddressRPC.Host == "" && c.AddressRPC.Port <= 0 && parsedConfig.AddressRPC != nil {
+		c.AddressRPC = parsedConfig.AddressRPC
 	}
 
 	if c.DatabaseDSN == "" && parsedConfig.DatabaseDSN != nil {
@@ -190,6 +236,10 @@ func (c *Configuration) parseJSONConfig() {
 
 	if c.CryptoKeyPath == "" && parsedConfig.CryptoKey != nil {
 		c.CryptoKeyPath = *parsedConfig.CryptoKey
+	}
+
+	if c.TrustedSubnet == nil && parsedConfig.TrustedSubnet != nil {
+		c.TrustedSubnet = parsedConfig.TrustedSubnet
 	}
 }
 

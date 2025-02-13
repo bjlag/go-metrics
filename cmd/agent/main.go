@@ -13,7 +13,9 @@ import (
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/agent/config"
-	"github.com/bjlag/go-metrics/internal/agent/client"
+	agent "github.com/bjlag/go-metrics/internal/agent/client"
+	"github.com/bjlag/go-metrics/internal/agent/client/http"
+	"github.com/bjlag/go-metrics/internal/agent/client/rpc"
 	"github.com/bjlag/go-metrics/internal/agent/collector"
 	"github.com/bjlag/go-metrics/internal/agent/limiter"
 	"github.com/bjlag/go-metrics/internal/logger"
@@ -44,7 +46,15 @@ func main() {
 	log.Info(build.CommitString())
 
 	log.Info("Starting agent")
-	log.Info(fmt.Sprintf("Sending metrics to %s", cfg.Address.String()))
+
+	protocol := "HTTP"
+	address := cfg.AddressHTTP
+	if cfg.AddressRPC != nil {
+		protocol = "RPC"
+		address = cfg.AddressRPC
+	}
+
+	log.Info(fmt.Sprintf("Sending metrics to %s server: %s", protocol, address.String()))
 	log.Info(fmt.Sprintf("Poll interval is %s", cfg.PollInterval))
 	log.Info(fmt.Sprintf("Report interval is %s", cfg.ReportInterval))
 	log.Info(fmt.Sprintf("Log level is '%s'", cfg.LogLevel))
@@ -70,10 +80,27 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	rateLimiter := limiter.NewRateLimiter(cfg.RateLimit)
 	metricCollector := collector.NewMetricCollector(&runtime.MemStats{})
-	metricClient := client.NewHTTPSender(cfg.Address.Host, cfg.Address.Port, signManager, cryptManager, rateLimiter, log)
+
+	var client agent.Client
+
+	if cfg.AddressRPC != nil {
+		client = rpc.NewSender(cfg.AddressRPC.String(), signManager, log)
+		defer func() {
+			_ = client.(*rpc.MetricSender).Close()
+		}()
+	}
+
+	if client == nil && cfg.AddressHTTP != nil {
+		client = http.NewSender(cfg.AddressHTTP.Host, cfg.AddressHTTP.Port, signManager, cryptManager, rateLimiter, log)
+	}
+
+	if client == nil {
+		return fmt.Errorf("could not create client")
+	}
 
 	pollTicker := time.NewTicker(cfg.PollInterval)
 	defer pollTicker.Stop()
+
 	reportTicker := time.NewTicker(cfg.ReportInterval)
 	defer reportTicker.Stop()
 
@@ -92,7 +119,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 					collector.NewCounterMetric("PollCount", 1),
 				}
 
-				if err := metricClient.Send(metrics); err != nil {
+				if err := client.Send(metrics); err != nil {
 					log.WithError(err).Error("Error in sending poll count")
 				}
 			}
@@ -115,7 +142,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 					continue
 				}
 
-				if err := metricClient.Send(metrics); err != nil {
+				if err := client.Send(metrics); err != nil {
 					log.WithError(err).Error("Error in sending report")
 				}
 			}
