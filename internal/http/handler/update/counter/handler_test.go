@@ -1,4 +1,4 @@
-package gauge_test
+package counter_test
 
 import (
 	"context"
@@ -9,11 +9,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/handler/update/gauge"
-	"github.com/bjlag/go-metrics/internal/handler/update/gauge/mock"
+	"github.com/bjlag/go-metrics/internal/http/handler/update/counter"
+	"github.com/bjlag/go-metrics/internal/http/handler/update/counter/mock"
 )
 
-func TestHandler_Handle(t *testing.T) {
+func Test_Handle(t *testing.T) {
 	type want struct {
 		statusCode int
 	}
@@ -32,36 +32,10 @@ func TestHandler_Handle(t *testing.T) {
 		want    want
 	}{
 		{
-			name: "success value is float",
+			name: "success",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().SetGauge(gomock.Any(), "test", 1.1).Times(1)
-
-				return mockStorage
-			},
-			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
-				mockBackup := mock.NewMockbackup(ctrl)
-				mockBackup.EXPECT().Create(context.Background()).Times(1)
-				return mockBackup
-			},
-			log: func(ctrl *gomock.Controller) *mock.MockLogger {
-				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().Info(gomock.Any()).AnyTimes()
-				return mockLog
-			},
-			fields: fields{
-				name:  "test",
-				value: "1.1",
-			},
-			want: want{
-				statusCode: http.StatusOK,
-			},
-		},
-		{
-			name: "success value is int",
-			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
-				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().SetGauge(gomock.Any(), "test", float64(1)).Times(1)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), "test", int64(1)).Times(1)
 
 				return mockStorage
 			},
@@ -87,7 +61,7 @@ func TestHandler_Handle(t *testing.T) {
 			name: "error empty name",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
@@ -110,10 +84,10 @@ func TestHandler_Handle(t *testing.T) {
 			},
 		},
 		{
-			name: "error invalid value is string",
+			name: "error invalid value is float",
 			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
 				mockStorage := mock.NewMockrepo(ctrl)
-				mockStorage.EXPECT().SetGauge(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
 				return mockStorage
 			},
@@ -124,7 +98,34 @@ func TestHandler_Handle(t *testing.T) {
 			},
 			log: func(ctrl *gomock.Controller) *mock.MockLogger {
 				mockLog := mock.NewMockLogger(ctrl)
-				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
+				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
+				return mockLog
+			},
+			fields: fields{
+				name:  "test",
+				value: "1.1",
+			},
+			want: want{
+				statusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "error invalid value is string",
+			storage: func(ctrl *gomock.Controller) *mock.Mockrepo {
+				mockStorage := mock.NewMockrepo(ctrl)
+				mockStorage.EXPECT().AddCounter(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+				return mockStorage
+			},
+			backup: func(ctrl *gomock.Controller) *mock.Mockbackup {
+				mockBackup := mock.NewMockbackup(ctrl)
+				mockBackup.EXPECT().Create(context.Background()).Times(0)
+				return mockBackup
+			},
+			log: func(ctrl *gomock.Controller) *mock.MockLogger {
+				mockLog := mock.NewMockLogger(ctrl)
+				mockLog.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLog).AnyTimes()
 				mockLog.EXPECT().Error(gomock.Any()).AnyTimes()
 				return mockLog
 			},
@@ -148,7 +149,7 @@ func TestHandler_Handle(t *testing.T) {
 			request.SetPathValue("name", tt.fields.name)
 			request.SetPathValue("value", tt.fields.value)
 
-			h := http.HandlerFunc(gauge.NewHandler(tt.storage(ctrl), tt.backup(ctrl), tt.log(ctrl)).Handle)
+			h := http.HandlerFunc(counter.NewHandler(tt.storage(ctrl), tt.backup(ctrl), tt.log(ctrl)).Handle)
 			h.ServeHTTP(w, request)
 
 			response := w.Result()

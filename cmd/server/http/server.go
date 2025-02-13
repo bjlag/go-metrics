@@ -17,19 +17,19 @@ import (
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
-	"github.com/bjlag/go-metrics/internal/handler/list"
-	"github.com/bjlag/go-metrics/internal/handler/ping"
-	updateBatch "github.com/bjlag/go-metrics/internal/handler/update/batch"
-	updateCounter "github.com/bjlag/go-metrics/internal/handler/update/counter"
-	updateGauge "github.com/bjlag/go-metrics/internal/handler/update/gauge"
-	updateGaneral "github.com/bjlag/go-metrics/internal/handler/update/general"
-	updateUnknown "github.com/bjlag/go-metrics/internal/handler/update/unknown"
-	valueCaunter "github.com/bjlag/go-metrics/internal/handler/value/counter"
-	valueGauge "github.com/bjlag/go-metrics/internal/handler/value/gauge"
-	valueGaneral "github.com/bjlag/go-metrics/internal/handler/value/general"
-	valueUnknown "github.com/bjlag/go-metrics/internal/handler/value/unknown"
+	"github.com/bjlag/go-metrics/internal/http/handler/list"
+	"github.com/bjlag/go-metrics/internal/http/handler/ping"
+	updateBatch "github.com/bjlag/go-metrics/internal/http/handler/update/batch"
+	updateCounter "github.com/bjlag/go-metrics/internal/http/handler/update/counter"
+	updateGauge "github.com/bjlag/go-metrics/internal/http/handler/update/gauge"
+	updateGaneral "github.com/bjlag/go-metrics/internal/http/handler/update/general"
+	updateUnknown "github.com/bjlag/go-metrics/internal/http/handler/update/unknown"
+	valueCaunter "github.com/bjlag/go-metrics/internal/http/handler/value/counter"
+	valueGauge "github.com/bjlag/go-metrics/internal/http/handler/value/gauge"
+	valueGaneral "github.com/bjlag/go-metrics/internal/http/handler/value/general"
+	valueUnknown "github.com/bjlag/go-metrics/internal/http/handler/value/unknown"
+	middleware2 "github.com/bjlag/go-metrics/internal/http/middleware"
 	"github.com/bjlag/go-metrics/internal/logger"
-	"github.com/bjlag/go-metrics/internal/middleware"
 	"github.com/bjlag/go-metrics/internal/renderer"
 	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
@@ -127,20 +127,20 @@ func (s *Server) router() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
-		middleware.LogMiddleware(s.log),
-		middleware.CheckRealIPMiddleware(s.trustedSubnet, s.log),
-		middleware.GzipMiddleware(s.log),
-		middleware.DecryptMiddleware(s.cryptManager, s.log),
+		middleware2.LogMiddleware(s.log),
+		middleware2.CheckRealIPMiddleware(s.trustedSubnet, s.log),
+		middleware2.GzipMiddleware(s.log),
+		middleware2.DecryptMiddleware(s.cryptManager, s.log),
 	)
 
 	r.Route("/", func(r chi.Router) {
-		r.With(middleware.HeaderResponseMiddleware("Content-Type", "text/html")).
+		r.With(middleware2.HeaderResponseMiddleware("Content-Type", "text/html")).
 			Get("/", list.NewHandler(s.htmlRenderer, s.repo, s.log).Handle)
 	})
 
 	r.Route("/update", func(r chi.Router) {
-		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
-		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
+		jsonContentType := middleware2.HeaderResponseMiddleware("Content-Type", "application/json")
+		textContentType := middleware2.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", updateGaneral.NewHandler(s.repo, s.backup, s.log).Handle)
 		r.With(textContentType).Post("/gauge/{name}/{value}", updateGauge.NewHandler(s.repo, s.backup, s.log).Handle)
@@ -149,8 +149,8 @@ func (s *Server) router() http.Handler {
 	})
 
 	r.Route("/updates", func(r chi.Router) {
-		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
-		validateSignRequest := middleware.SignatureMiddleware(s.singManager, s.log)
+		jsonContentType := middleware2.HeaderResponseMiddleware("Content-Type", "application/json")
+		validateSignRequest := middleware2.SignatureMiddleware(s.singManager, s.log)
 
 		r.
 			With(jsonContentType).
@@ -159,8 +159,8 @@ func (s *Server) router() http.Handler {
 	})
 
 	r.Route("/value", func(r chi.Router) {
-		jsonContentType := middleware.HeaderResponseMiddleware("Content-Type", "application/json")
-		textContentType := middleware.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
+		jsonContentType := middleware2.HeaderResponseMiddleware("Content-Type", "application/json")
+		textContentType := middleware2.HeaderResponseMiddleware("Content-Type", "text/plain", "charset=utf-8")
 
 		r.With(jsonContentType).Post("/", valueGaneral.NewHandler(s.repo, s.log).Handle)
 		r.With(textContentType).Get("/gauge/{name}", valueGauge.NewHandler(s.repo, s.log).Handle)

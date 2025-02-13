@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bjlag/go-metrics/internal/middleware"
+	"github.com/bjlag/go-metrics/internal/http/middleware"
 	"github.com/bjlag/go-metrics/internal/mock"
 )
 
