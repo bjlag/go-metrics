@@ -21,16 +21,19 @@ const (
 type Server struct {
 	rpc.UnimplementedMetricServiceServer
 
-	addr    string
-	methods map[string]any
-	log     logger.Logger
+	methods       map[string]any
+	addr          string
+	trustedSubnet *net.IPNet
+	log           logger.Logger
 }
 
-func NewServer(addr string, log logger.Logger) *Server {
+func NewServer(addr string, trustedSubnet *net.IPNet, log logger.Logger) *Server {
 	return &Server{
-		addr:    addr,
 		methods: make(map[string]any),
-		log:     log,
+
+		addr:          addr,
+		trustedSubnet: trustedSubnet,
+		log:           log,
 	}
 }
 
@@ -47,6 +50,7 @@ func (s *Server) Start(ctx context.Context) error {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.LoggerServerInterceptor(s.log),
+			interceptor.CheckRealIPMiddleware(s.trustedSubnet, s.log),
 		),
 	)
 	rpc.RegisterMetricServiceServer(grpcServer, s)

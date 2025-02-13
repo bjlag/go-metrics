@@ -134,7 +134,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 		log,
 	)
 
-	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), log)
+	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), cfg.TrustedSubnet, log)
 	serverRPC.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
 
 	g, gCtx := errgroup.WithContext(ctx)
