@@ -2,24 +2,24 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	nativLog "log"
-	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/bjlag/go-metrics/cmd"
 	"github.com/bjlag/go-metrics/cmd/server/config"
+	"github.com/bjlag/go-metrics/cmd/server/http"
+	"github.com/bjlag/go-metrics/cmd/server/rpc"
 	_ "github.com/bjlag/go-metrics/docs"
 	"github.com/bjlag/go-metrics/internal/backup"
 	asyncBackup "github.com/bjlag/go-metrics/internal/backup/async"
 	syncBackup "github.com/bjlag/go-metrics/internal/backup/sync"
 	"github.com/bjlag/go-metrics/internal/logger"
 	"github.com/bjlag/go-metrics/internal/renderer"
+	"github.com/bjlag/go-metrics/internal/rpc/handler/updates"
 	"github.com/bjlag/go-metrics/internal/securety/crypt"
 	"github.com/bjlag/go-metrics/internal/securety/signature"
 	"github.com/bjlag/go-metrics/internal/storage"
@@ -29,8 +29,7 @@ import (
 )
 
 const (
-	tmplPath  = "web/tmpl/list.html"
-	gdTimeout = 10 * time.Second
+	tmplPath = "web/tmpl/list.html"
 )
 
 var (
@@ -59,7 +58,8 @@ func main() {
 	log.Info(build.DateString())
 	log.Info(build.CommitString())
 
-	log.WithField("address", cfg.Address.String()).Info("Starting server")
+	log.WithField("address", cfg.AddressHTTP.String()).Info("Starting HTTP server")
+	log.WithField("address", cfg.AddressRPC.String()).Info("Starting RPC server")
 	log.Info(fmt.Sprintf("Log level '%s'", cfg.LogLevel))
 	log.Info(fmt.Sprintf("Store interval %s", cfg.StoreInterval))
 	log.Info(fmt.Sprintf("File storage path '%s'", cfg.FileStoragePath))
@@ -79,11 +79,11 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 
 	db := initDB(cfg.DatabaseDSN, log)
 
-	var store storage.Repository
+	var repo storage.Repository
 	if db != nil {
-		store = pg.NewStorage(db, log)
+		repo = pg.NewStorage(db, log)
 	} else {
-		store = memory.NewStorage()
+		repo = memory.NewStorage()
 	}
 
 	backupStore, err := file.NewStorage(cfg.FileStoragePath)
@@ -93,7 +93,7 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	}
 
 	if cfg.Restore {
-		err = restoreData(ctx, backupStore, store)
+		err = restoreData(ctx, backupStore, repo)
 		if err != nil {
 			log.WithError(err).Error("Failed to load backup data")
 		}
@@ -107,9 +107,9 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 	)
 
 	if cfg.StoreInterval <= 0 {
-		backupCreator = syncBackup.New(store, backupStore, log)
+		backupCreator = syncBackup.New(repo, backupStore, log)
 	} else {
-		asyncBackupCreator = asyncBackup.New(store, backupStore, cfg.StoreInterval, log)
+		asyncBackupCreator = asyncBackup.New(repo, backupStore, cfg.StoreInterval, log)
 		asyncBackupCreator.Start(ctx)
 		backupCreator = asyncBackupCreator
 	}
@@ -121,40 +121,41 @@ func run(log logger.Logger, cfg *config.Configuration) error {
 
 	signManager := signature.NewSignManager(cfg.SecretKey)
 	htmlRenderer := renderer.NewHTMLRenderer(tmplPath)
-	httpServer := &http.Server{
-		Addr:    cfg.Address.String(),
-		Handler: initRouter(htmlRenderer, store, db, backupCreator, signManager, cryptManager, log),
-	}
+
+	serverHTTP := http.NewServer(
+		cfg.AddressHTTP.String(),
+		htmlRenderer,
+		repo,
+		db,
+		backupCreator,
+		signManager,
+		cryptManager,
+		cfg.TrustedSubnet,
+		log,
+	)
+
+	serverRPC := rpc.NewServer(cfg.AddressRPC.String(), cfg.TrustedSubnet, signManager, log)
+	serverRPC.AddMethod(rpc.UpdatesMethodName, updates.NewHandler(repo, backupCreator, log).Updates)
 
 	g, gCtx := errgroup.WithContext(ctx)
-
 	g.Go(func() error {
-		return httpServer.ListenAndServe()
-	})
-
-	g.Go(func() error {
-		<-gCtx.Done()
-
-		gdCtx, cancel := context.WithTimeout(context.Background(), gdTimeout)
-		defer cancel()
-
-		if asyncBackupCreator != nil {
-			asyncBackupCreator.Stop(gdCtx)
-		} else {
-			err = backupCreator.Create(gdCtx)
-			if err != nil {
-				log.WithError(err).Error("Failed to create backup while shutting down")
-				return err
-			}
-		}
-
-		return httpServer.Shutdown(gdCtx)
-	})
-
-	if err := g.Wait(); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
+		err = serverHTTP.Start(gCtx)
+		if err != nil {
 			return err
 		}
+
+		return nil
+	})
+	g.Go(func() error {
+		err = serverRPC.Start(gCtx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	log.Info("Server shutdown gracefully")

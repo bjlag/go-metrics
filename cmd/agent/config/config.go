@@ -32,19 +32,21 @@ func (o *address) Set(value string) error {
 }
 
 const (
-	envAddressKey        = "ADDRESS"
-	envPollIntervalKey   = "POLL_INTERVAL"
-	envReportIntervalKey = "REPORT_INTERVAL"
-	envLogLevel          = "LOG_LEVEL"
-	envSecretKey         = "KEY"
-	envRateLimitKey      = "RATE_LIMIT"
-	envCryptoKey         = "CRYPTO_KEY"
-	envConfigPath        = "CONFIG"
+	envAddressHTTP    = "ADDRESS"
+	envAddressRPC     = "ADDRESS_RPC"
+	envPollInterval   = "POLL_INTERVAL"
+	envReportInterval = "REPORT_INTERVAL"
+	envLogLevel       = "LOG_LEVEL"
+	envSecret         = "KEY"
+	envRateLimit      = "RATE_LIMIT"
+	envCrypto         = "CRYPTO_KEY"
+	envConfigPath     = "CONFIG"
 )
 
 type Configuration struct {
 	LogLevel       string
-	Address        *address
+	AddressHTTP    *address
+	AddressRPC     *address
 	ReportInterval time.Duration
 	PollInterval   time.Duration
 	CryptoKeyPath  string
@@ -55,7 +57,8 @@ type Configuration struct {
 
 func LoadConfig() *Configuration {
 	c := &Configuration{
-		Address: &address{},
+		AddressHTTP: &address{},
+		AddressRPC:  &address{},
 	}
 
 	c.parseFlags()
@@ -66,9 +69,11 @@ func LoadConfig() *Configuration {
 }
 
 func (c *Configuration) parseFlags() {
-	_ = flag.Value(c.Address)
+	_ = flag.Value(c.AddressHTTP)
+	_ = flag.Value(c.AddressRPC)
 
-	flag.Var(c.Address, "a", "Server address: host:port")
+	flag.Var(c.AddressHTTP, "a", "Server HTTP address: host:port")
+	flag.Var(c.AddressRPC, "address-rpc", "Server RPC address: host:port")
 	flag.Func("p", "Poll interval in seconds", func(s string) error {
 		var err error
 
@@ -102,48 +107,55 @@ func (c *Configuration) parseFlags() {
 func (c *Configuration) parseEnvs() {
 	var err error
 
-	if envAddressValue := os.Getenv(envAddressKey); envAddressValue != "" {
-		c.Address.Host, c.Address.Port, err = parseHostAndPort(envAddressValue)
+	if value := os.Getenv(envAddressHTTP); value != "" {
+		c.AddressHTTP.Host, c.AddressHTTP.Port, err = parseHostAndPort(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envPollInterval := os.Getenv(envPollIntervalKey); envPollInterval != "" {
-		c.PollInterval, err = stringToDurationInSeconds(envPollInterval)
+	if value := os.Getenv(envAddressRPC); value != "" {
+		c.AddressRPC.Host, c.AddressRPC.Port, err = parseHostAndPort(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envReportInterval := os.Getenv(envReportIntervalKey); envReportInterval != "" {
-		c.ReportInterval, err = stringToDurationInSeconds(envReportInterval)
+	if value := os.Getenv(envPollInterval); value != "" {
+		c.PollInterval, err = stringToDurationInSeconds(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envLogLevelValue := os.Getenv(envLogLevel); envLogLevelValue != "" {
-		c.LogLevel = envLogLevelValue
-	}
-
-	if envSecretKeyValue := os.Getenv(envSecretKey); envSecretKeyValue != "" {
-		c.SecretKey = envSecretKeyValue
-	}
-
-	if envRateLimitValue := os.Getenv(envRateLimitKey); envRateLimitValue != "" {
-		c.RateLimit, err = strconv.Atoi(envRateLimitValue)
+	if value := os.Getenv(envReportInterval); value != "" {
+		c.ReportInterval, err = stringToDurationInSeconds(value)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if envCryptoKeyValue := os.Getenv(envCryptoKey); envCryptoKeyValue != "" {
-		c.CryptoKeyPath = envCryptoKeyValue
+	if value := os.Getenv(envLogLevel); value != "" {
+		c.LogLevel = value
 	}
 
-	if envConfigPathValue := os.Getenv(envConfigPath); envConfigPathValue != "" {
-		c.ConfigPath = envConfigPathValue
+	if value := os.Getenv(envSecret); value != "" {
+		c.SecretKey = value
+	}
+
+	if value := os.Getenv(envRateLimit); value != "" {
+		c.RateLimit, err = strconv.Atoi(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if value := os.Getenv(envCrypto); value != "" {
+		c.CryptoKeyPath = value
+	}
+
+	if value := os.Getenv(envConfigPath); value != "" {
+		c.ConfigPath = value
 	}
 }
 
@@ -166,8 +178,12 @@ func (c *Configuration) parseJSONConfig() {
 		log.Fatal(err)
 	}
 
-	if c.Address.Host == "" && c.Address.Port <= 0 && parsedConfig.Address != nil {
-		c.Address = parsedConfig.Address
+	if c.AddressHTTP.Host == "" && c.AddressHTTP.Port <= 0 && parsedConfig.AddressHTTP != nil {
+		c.AddressHTTP = parsedConfig.AddressHTTP
+	}
+
+	if c.AddressRPC.Host == "" && c.AddressRPC.Port <= 0 && parsedConfig.AddressRPC != nil {
+		c.AddressRPC = parsedConfig.AddressRPC
 	}
 
 	if c.LogLevel == "" && parsedConfig.LogLevel != nil {

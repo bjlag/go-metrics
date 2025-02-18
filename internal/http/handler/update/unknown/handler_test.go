@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bjlag/go-metrics/internal/handler/update/unknown"
-	"github.com/bjlag/go-metrics/internal/handler/update/unknown/mock"
+	"github.com/bjlag/go-metrics/internal/http/handler/update/unknown"
+	"github.com/bjlag/go-metrics/internal/http/handler/update/unknown/mock"
 )
 
 func TestHandler_Handle(t *testing.T) {

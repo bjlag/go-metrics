@@ -1,5 +1,6 @@
 {
   "address": "localhost:8080",
+  "address_rpc": "localhost:3200",
   "restore": true,
   "store_interval": "1s",
   "store_file": "./data/metrics.json",
@@ -7,5 +8,6 @@
   "crypto_key": "./cert/private.pem",
   "log_level": "info",
   "file_storage_path": "data/metrics.json",
-  "key": "secret"
+  "key": "secret",
+  "trusted_subnet": "192.168.1.0/24"
 }
